@@ -10,30 +10,34 @@ from api.routes import clients, servers, prices
 # Create FastAPI instance
 app = FastAPI(
     title="Billing_DC API",
-    description="API for billing system for virtual servers in data center",
+    description="API для биллинговой системы виртуальных серверов в дата-центре",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    swagger_ui_parameters={
+        "defaultModelsExpandDepth": -1,  # Скрыть модели по умолчанию
+        "docExpansion": "none",  # Свернуть все эндпоинты
+    }
 )
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Include routers
-app.include_router(clients.router, prefix="/api/v1/clients", tags=["Clients"])
-app.include_router(servers.router, prefix="/api/v1/servers", tags=["Servers"])
-app.include_router(prices.router, prefix="/api/v1/prices", tags=["Prices"])
+app.include_router(clients.router, prefix="/api/v1/clients", tags=["Клиенты"])
+app.include_router(servers.router, prefix="/api/v1/servers", tags=["Серверы"])
+app.include_router(prices.router, prefix="/api/v1/prices", tags=["Цены"])
 
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
+    """Корневой эндпоинт."""
     return {
         "message": "Billing_DC API",
         "version": "1.0.0",
@@ -43,5 +47,5 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """Health check endpoint."""
+    """Проверка работоспособности."""
     return {"status": "healthy"}
