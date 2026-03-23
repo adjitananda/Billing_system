@@ -208,11 +208,11 @@ async def get_summary_report(
         elif group_by == "month":
             cursor.execute("""
                 SELECT 
-                    DATE_FORMAT(db.billing_date, '%%Y-%%m') as month,
+                    DATE_FORMAT(db.billing_date, '%Y-%m') as month,
                     SUM(db.total_cost) as amount
                 FROM daily_billing db
                 WHERE db.billing_date BETWEEN %s AND %s
-                GROUP BY DATE_FORMAT(db.billing_date, '%%Y-%%m')
+                GROUP BY DATE_FORMAT(db.billing_date, '%Y-%m')
                 ORDER BY month
             """, (period_start, period_end))
             
