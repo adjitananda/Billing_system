@@ -5,7 +5,7 @@ FastAPI application for Billing_DC system.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import clients, servers, prices
+from api.routes import clients, servers, prices, reports
 
 # Create FastAPI instance
 app = FastAPI(
@@ -33,6 +33,7 @@ app.add_middleware(
 app.include_router(clients.router, prefix="/api/v1/clients", tags=["Клиенты"])
 app.include_router(servers.router, prefix="/api/v1/servers", tags=["Серверы"])
 app.include_router(prices.router, prefix="/api/v1/prices", tags=["Цены"])
+app.include_router(reports.router, prefix="/api/v1/reports", tags=["Отчеты"])
 
 
 @app.get("/")
