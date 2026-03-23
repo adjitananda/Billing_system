@@ -15,6 +15,12 @@ sys.path.insert(0, '/home/billing/billing_system')
 
 from config.database import get_connection
 from utils.logger import logger
+from services.billing_service import (
+    get_active_servers_on_date,
+    get_config_on_date,
+    get_prices_on_date,
+    calculate_server_cost
+)
 
 
 def parse_arguments():
@@ -77,24 +83,6 @@ def get_target_date(args):
         return target_date
 
 
-def get_active_servers_on_date(conn, target_date):
-    """
-    Получает список активных серверов на указанную дату.
-    Возвращает список словарей с данными серверов.
-    """
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT vs.* FROM virtual_servers vs
-        JOIN vm_statuses s ON vs.status_id = s.id
-        WHERE s.code = 'active'
-          AND vs.start_date <= %s
-          AND (vs.stop_date IS NULL OR vs.stop_date > %s)
-    """, (target_date, target_date))
-    servers = cursor.fetchall()
-    logger.info(f"Найдено активных серверов на {target_date}: {len(servers)}")
-    return servers
-
-
 def check_existing_records(conn, target_date):
     """Проверяет наличие записей за указанную дату"""
     cursor = conn.cursor()
@@ -117,85 +105,6 @@ def delete_existing_records(conn, target_date):
     conn.commit()
     logger.info(f"Удалено существующих записей за {target_date}: {deleted}")
     return deleted
-
-
-def get_config_on_date(conn, vm_id, target_date):
-    """
-    Получает конфигурацию сервера на указанную дату.
-    Сначала ищет в истории изменений, затем в основной таблице.
-    """
-    cursor = conn.cursor(dictionary=True)
-    
-    # Ищем в истории изменений
-    cursor.execute("""
-        SELECT * FROM vm_config_history
-        WHERE vm_id = %s AND effective_from <= %s
-        ORDER BY effective_from DESC LIMIT 1
-    """, (vm_id, target_date))
-    config = cursor.fetchone()
-    
-    if config:
-        logger.debug(f"VM {vm_id}: конфигурация из истории от {config['effective_from']}")
-        return config
-    
-    # Берём из основной таблицы
-    cursor.execute(
-        "SELECT * FROM virtual_servers WHERE id = %s",
-        (vm_id,)
-    )
-    config = cursor.fetchone()
-    if config:
-        logger.debug(f"VM {vm_id}: конфигурация из основной таблицы")
-        return config
-    
-    logger.warning(f"VM {vm_id}: конфигурация не найдена")
-    return None
-
-
-def get_prices_on_date(conn, target_date):
-    """Получает актуальные цены на указанную дату"""
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT * FROM resource_prices
-        WHERE effective_from <= %s
-        ORDER BY effective_from DESC LIMIT 1
-    """, (target_date,))
-    prices = cursor.fetchone()
-    
-    if not prices:
-        logger.error(f"Цены на ресурсы не найдены для даты {target_date}")
-        return None
-    
-    logger.info(f"Используются цены от {prices['effective_from']}")
-    return prices
-
-
-def calculate_total_nvme(config):
-    """Рассчитывает общий объём NVMe из всех пяти дисков"""
-    nvme_total = 0
-    for i in range(1, 6):
-        nvme_total += config.get(f'nvme{i}_gb', 0)
-    return nvme_total
-
-
-def calculate_costs(config, prices):
-    """Рассчитывает стоимости на основе конфигурации и цен"""
-    nvme_total = calculate_total_nvme(config)
-    
-    cpu_cost = Decimal(config['cpu_cores']) * Decimal(prices['cpu_price_per_core'])
-    ram_cost = Decimal(config['ram_gb']) * Decimal(prices['ram_price_per_gb'])
-    nvme_cost = Decimal(nvme_total) * Decimal(prices['nvme_price_per_gb'])
-    hdd_cost = Decimal(config.get('hdd_gb', 0)) * Decimal(prices['hdd_price_per_gb'])
-    total_cost = cpu_cost + ram_cost + nvme_cost + hdd_cost
-    
-    return {
-        'cpu_cost': cpu_cost,
-        'ram_cost': ram_cost,
-        'nvme_cost': nvme_cost,
-        'hdd_cost': hdd_cost,
-        'total_cost': total_cost,
-        'nvme_total': nvme_total
-    }
 
 
 def insert_billing_record(conn, vm, config, prices, costs, target_date):
@@ -286,7 +195,7 @@ def main():
                 continue
             
             # Рассчитываем стоимости
-            costs = calculate_costs(config, prices)
+            costs = calculate_server_cost(config, prices)
             
             if args.dry_run:
                 logger.info(f"[DRY RUN] VM {vm['id']} (client {vm['client_id']}): "
