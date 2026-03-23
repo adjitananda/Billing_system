@@ -16,6 +16,7 @@ from services.billing_service import (
     calculate_server_cost
 )
 from api.schemas.report import (
+    UsagePercent,  # добавить
     ClientReport,
     ClientServerReport,
     DailyBreakdownItem,
@@ -272,23 +273,21 @@ async def get_datacenter_report(
         
         # Получаем физические серверы
         cursor.execute("""
-            SELECT id, name, total_cores, total_ram_gb, total_nvme_gb, total_hdd_gb
+            SELECT id, name, total_cores, total_ram_gb, total_nvme_gb, total_sata_gb
             FROM physical_servers
-            WHERE is_active = 1
         """)
         
         physical_servers = cursor.fetchall()
         
         if not physical_servers:
-            # Если нет данных в physical_servers, возвращаем пустой отчет
             return DatacenterReport(
                 date=target_date,
                 physical_servers=[],
-                total_usage=PhysicalServerResources(
+                total_usage=UsagePercent(
                     cores=0,
                     ram_gb=0,
                     nvme_gb=0,
-                    hdd_gb=0
+                    sata_gb=0
                 )
             )
         
@@ -297,28 +296,25 @@ async def get_datacenter_report(
             'cores': sum(ps['total_cores'] for ps in physical_servers),
             'ram_gb': sum(ps['total_ram_gb'] for ps in physical_servers),
             'nvme_gb': sum(ps['total_nvme_gb'] for ps in physical_servers),
-            'hdd_gb': sum(ps['total_hdd_gb'] for ps in physical_servers)
+            'sata_gb': sum(ps['total_sata_gb'] for ps in physical_servers)
         }
         
-        # Использованные ресурсы (по умолчанию 0 если нет данных)
+        # Использованные ресурсы (используем used_hdd из запроса)
         used = {
-            'cores': used_resources.get('used_cores', 0),
-            'ram_gb': used_resources.get('used_ram', 0),
-            'nvme_gb': used_resources.get('used_nvme', 0),
-            'hdd_gb': used_resources.get('used_hdd', 0)
+            'cores': used_resources.get('used_cores', 0) or 0,
+            'ram_gb': used_resources.get('used_ram', 0) or 0,
+            'nvme_gb': used_resources.get('used_nvme', 0) or 0,
+            'sata_gb': used_resources.get('used_hdd', 0) or 0
         }
         
         # Рассчитываем проценты использования для каждого физического сервера
-        # В текущей реализации используем общие проценты для всех серверов
-        # (для более точного расчета потребуется распределение VM по физическим серверам)
         physical_servers_list = []
         
         for ps in physical_servers:
-            # Расчет процентов использования для каждого сервера
             cores_percent = (used['cores'] / total_resources['cores'] * 100) if total_resources['cores'] > 0 else 0
             ram_percent = (used['ram_gb'] / total_resources['ram_gb'] * 100) if total_resources['ram_gb'] > 0 else 0
             nvme_percent = (used['nvme_gb'] / total_resources['nvme_gb'] * 100) if total_resources['nvme_gb'] > 0 else 0
-            hdd_percent = (used['hdd_gb'] / total_resources['hdd_gb'] * 100) if total_resources['hdd_gb'] > 0 else 0
+            sata_percent = (used['sata_gb'] / total_resources['sata_gb'] * 100) if total_resources['sata_gb'] > 0 else 0
             
             physical_servers_list.append(
                 PhysicalServerUsage(
@@ -328,19 +324,19 @@ async def get_datacenter_report(
                         cores=ps['total_cores'],
                         ram_gb=ps['total_ram_gb'],
                         nvme_gb=ps['total_nvme_gb'],
-                        hdd_gb=ps['total_hdd_gb']
+                        sata_gb=ps['total_sata_gb']
                     ),
                     used=PhysicalServerResources(
                         cores=int(ps['total_cores'] * cores_percent / 100),
                         ram_gb=int(ps['total_ram_gb'] * ram_percent / 100),
                         nvme_gb=int(ps['total_nvme_gb'] * nvme_percent / 100),
-                        hdd_gb=int(ps['total_hdd_gb'] * hdd_percent / 100)
+                        sata_gb=int(ps['total_sata_gb'] * sata_percent / 100)
                     ),
-                    usage_percent=PhysicalServerResources(
+                    usage_percent=UsagePercent(
                         cores=round(cores_percent, 1),
                         ram_gb=round(ram_percent, 1),
                         nvme_gb=round(nvme_percent, 1),
-                        hdd_gb=round(hdd_percent, 1)
+                        sata_gb=round(sata_percent, 1)
                     )
                 )
             )
@@ -350,7 +346,7 @@ async def get_datacenter_report(
             cores=round((used['cores'] / total_resources['cores'] * 100), 1) if total_resources['cores'] > 0 else 0,
             ram_gb=round((used['ram_gb'] / total_resources['ram_gb'] * 100), 1) if total_resources['ram_gb'] > 0 else 0,
             nvme_gb=round((used['nvme_gb'] / total_resources['nvme_gb'] * 100), 1) if total_resources['nvme_gb'] > 0 else 0,
-            hdd_gb=round((used['hdd_gb'] / total_resources['hdd_gb'] * 100), 1) if total_resources['hdd_gb'] > 0 else 0
+            sata_gb=round((used['sata_gb'] / total_resources['sata_gb'] * 100), 1) if total_resources['sata_gb'] > 0 else 0
         )
         
         return DatacenterReport(
@@ -398,7 +394,7 @@ async def get_server_history_report(
                 cpu_cores,
                 ram_gb,
                 nvme1_gb, nvme2_gb, nvme3_gb, nvme4_gb, nvme5_gb,
-                hdd_gb,
+                hdd_gb as sata_gb,
                 total_cost as cost
             FROM daily_billing
             WHERE vm_id = %s 
@@ -428,7 +424,7 @@ async def get_server_history_report(
                                 cpu_cores=config['cpu_cores'],
                                 ram_gb=config['ram_gb'],
                                 nvme_gb=nvme_total,
-                                hdd_gb=config.get('hdd_gb', 0),
+                                sata_gb=config.get('hdd_gb', 0),
                                 cost=costs['total_cost']
                             )
                         )
@@ -449,7 +445,7 @@ async def get_server_history_report(
                         cpu_cores=row['cpu_cores'],
                         ram_gb=row['ram_gb'],
                         nvme_gb=nvme_total,
-                        hdd_gb=row['hdd_gb'],
+                        sata_gb=row['sata_gb'],
                         cost=Decimal(str(row['cost']))
                     )
                 )
@@ -464,7 +460,7 @@ async def get_server_history_report(
                 cpu_cores,
                 ram_gb,
                 nvme1_gb, nvme2_gb, nvme3_gb, nvme4_gb, nvme5_gb,
-                hdd_gb
+                hdd_gb as sata_gb
             FROM vm_config_history
             WHERE vm_id = %s 
               AND effective_from BETWEEN %s AND %s
@@ -476,7 +472,8 @@ async def get_server_history_report(
         # Также добавляем начальную конфигурацию из virtual_servers, если она попадает в период
         cursor.execute("""
             SELECT start_date as effective_from, cpu_cores, ram_gb,
-                   nvme1_gb, nvme2_gb, nvme3_gb, nvme4_gb, nvme5_gb, hdd_gb
+                   nvme1_gb, nvme2_gb, nvme3_gb, nvme4_gb, nvme5_gb,
+                   hdd_gb as sata_gb
             FROM virtual_servers
             WHERE id = %s AND start_date BETWEEN %s AND %s
         """, (server_id, period_start, period_end))
@@ -492,7 +489,7 @@ async def get_server_history_report(
                     cpu_cores=initial_config['cpu_cores'],
                     ram_gb=initial_config['ram_gb'],
                     nvme_gb=nvme_total,
-                    hdd_gb=initial_config.get('hdd_gb', 0)
+                    sata_gb=initial_config.get('sata_gb', 0)
                 )
             )
         
@@ -504,7 +501,7 @@ async def get_server_history_report(
                     cpu_cores=row['cpu_cores'],
                     ram_gb=row['ram_gb'],
                     nvme_gb=nvme_total,
-                    hdd_gb=row.get('hdd_gb', 0)
+                    sata_gb=row.get('sata_gb', 0)
                 )
             )
         

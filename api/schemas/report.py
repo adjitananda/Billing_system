@@ -68,11 +68,19 @@ class MonthlySummaryReport(BaseModel):
 
 
 class PhysicalServerResources(BaseModel):
-    """Ресурсы физического сервера."""
+    """Ресурсы физического сервера (абсолютные значения)."""
     cores: int
     ram_gb: int
     nvme_gb: int
-    hdd_gb: int
+    sata_gb: int
+
+
+class UsagePercent(BaseModel):
+    """Проценты использования."""
+    cores: float
+    ram_gb: float
+    nvme_gb: float
+    sata_gb: float
 
 
 class PhysicalServerUsage(BaseModel):
@@ -81,14 +89,14 @@ class PhysicalServerUsage(BaseModel):
     server_name: str
     total: PhysicalServerResources
     used: PhysicalServerResources
-    usage_percent: PhysicalServerResources
+    usage_percent: UsagePercent
 
 
 class DatacenterReport(BaseModel):
     """Отчет по загрузке дата-центра."""
     date: date
     physical_servers: List[PhysicalServerUsage]
-    total_usage: PhysicalServerResources
+    total_usage: UsagePercent
 
 
 class DailyBreakdownDetail(BaseModel):
@@ -97,7 +105,7 @@ class DailyBreakdownDetail(BaseModel):
     cpu_cores: int
     ram_gb: int
     nvme_gb: int
-    hdd_gb: int
+    sata_gb: int
     cost: Decimal
 
 
@@ -107,7 +115,7 @@ class ConfigChangeItem(BaseModel):
     cpu_cores: int
     ram_gb: int
     nvme_gb: int
-    hdd_gb: int
+    sata_gb: int
 
 
 class ServerHistoryReport(BaseModel):
