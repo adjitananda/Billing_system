@@ -16,7 +16,6 @@ from services.billing_service import (
     calculate_server_cost
 )
 from api.schemas.report import (
-    UsagePercent,  # добавить
     ClientReport,
     ClientServerReport,
     DailyBreakdownItem,
@@ -27,6 +26,7 @@ from api.schemas.report import (
     DatacenterReport,
     PhysicalServerResources,
     PhysicalServerUsage,
+    UsagePercent,
     ServerHistoryReport,
     DailyBreakdownDetail,
     ConfigChangeItem,
@@ -299,7 +299,7 @@ async def get_datacenter_report(
             'sata_gb': sum(ps['total_sata_gb'] for ps in physical_servers)
         }
         
-        # Использованные ресурсы (используем used_hdd из запроса)
+        # Использованные ресурсы
         used = {
             'cores': used_resources.get('used_cores', 0) or 0,
             'ram_gb': used_resources.get('used_ram', 0) or 0,
@@ -342,7 +342,7 @@ async def get_datacenter_report(
             )
         
         # Общие проценты использования
-        total_usage = PhysicalServerResources(
+        total_usage = UsagePercent(
             cores=round((used['cores'] / total_resources['cores'] * 100), 1) if total_resources['cores'] > 0 else 0,
             ram_gb=round((used['ram_gb'] / total_resources['ram_gb'] * 100), 1) if total_resources['ram_gb'] > 0 else 0,
             nvme_gb=round((used['nvme_gb'] / total_resources['nvme_gb'] * 100), 1) if total_resources['nvme_gb'] > 0 else 0,
