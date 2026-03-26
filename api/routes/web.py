@@ -136,16 +136,34 @@ async def client_detail(request: Request, client_id: int):
 
 # ==================== СЕРВЕРЫ ====================
 @router.get("/servers", response_class=HTMLResponse)
-async def list_servers(request: Request, status: str = "", client_id: int = None):
+async def list_servers(request: Request, status: str = "", client_id: str = ""):
+    """Список серверов"""
     servers = await api_request("GET", "/servers/")
-    if status:
-        servers = [s for s in servers if s.get("status") == status]
-    if client_id:
-        servers = [s for s in servers if s.get("client_id") == client_id]
+    
+    # Получаем список клиентов для сопоставления ID с именами
     try:
         clients = await api_request("GET", "/clients/")
+        client_dict = {c["id"]: c["name"] for c in clients}
     except:
-        clients = []
+        client_dict = {}
+    
+    # Получаем список хостов для сопоставления ID с именами
+    try:
+        physical_servers = await api_request("GET", "/physical-servers/")
+        host_dict = {h["id"]: h["name"] for h in physical_servers}
+    except:
+        host_dict = {}
+    
+    # Добавляем имена клиентов и хостов к каждому серверу
+    for server in servers:
+        server["client_name"] = client_dict.get(server.get("client_id"))
+        server["physical_server_name"] = host_dict.get(server.get("physical_server_id"))
+    
+    if status:
+        servers = [s for s in servers if s.get("status") == status]
+    if client_id and client_id.isdigit():
+        servers = [s for s in servers if s.get("client_id") == int(client_id)]
+    
     return templates.TemplateResponse("servers/list.html", {
         "request": request, "servers": servers, "status": status, "client_id": client_id, "clients": clients
     })

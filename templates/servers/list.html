@@ -16,14 +16,14 @@
                     <option value="">Все статусы</option>
                     <option value="active" {% if status == 'active' %}selected{% endif %}>Активен</option>
                     <option value="draft" {% if status == 'draft' %}selected{% endif %}>Черновик</option>
-                    <option value="deactivated" {% if status == 'deactivated' %}selected{% endif %}>Деактивирован</option>
+                    <option value="deleted" {% if status == 'deleted' %}selected{% endif %}>Удалён</option>
                 </select>
             </div>
             <div class="col-md-4">
                 <select name="client_id" class="form-select">
                     <option value="">Все клиенты</option>
                     {% for client in clients %}
-                    <option value="{{ client.id }}" {% if client_id == client.id %}selected{% endif %}>{{ client.name }}</option>
+                    <option value="{{ client.id }}" {% if client_id|string == client.id|string %}selected{% endif %}>{{ client.name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -42,9 +42,11 @@
                 <th>ID</th>
                 <th>Название</th>
                 <th>Клиент</th>
+                <th>Хост</th>
                 <th>Статус</th>
                 <th>CPU</th>
-                <th>RAM (ГБ)</th>
+                <th>RAM</th>
+                <th>NVMe</th>
                 <th>Стоимость/день</th>
                 <th>Действия</th>
             </tr>
@@ -54,17 +56,34 @@
             <tr>
                 <td>{{ server.id }}</td>
                 <td><a href="/servers/{{ server.id }}">{{ server.name }}</a></td>
-                <td>{{ server.client_name if server.client_name else "—" }}</td>
+                <td>
+                    {% if server.client_name %}
+                    <a href="/clients/{{ server.client_id }}">{{ server.client_name }}</a>
+                    {% else %}
+                    <a href="/clients/{{ server.client_id }}">Клиент #{{ server.client_id }}</a>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if server.physical_server_name %}
+                    <a href="/physical-servers/{{ server.physical_server_id }}">{{ server.physical_server_name }}</a>
+                    {% else %}
+                    <a href="/physical-servers/{{ server.physical_server_id }}">Хост #{{ server.physical_server_id }}</a>
+                    {% endif %}
+                </td>
                 <td>
                     <span class="badge bg-{% if server.status == 'active' %}success{% elif server.status == 'draft' %}secondary{% else %}danger{% endif %}">
-                        {{ server.status }}
+                        {% if server.status == 'active' %}Активен{% elif server.status == 'draft' %}Черновик{% else %}Удалён{% endif %}
                     </span>
                 </td>
                 <td>{{ server.cpu_cores }}</td>
-                <td>{{ server.ram_gb }}</td>
+                <td>{{ server.ram_gb }} ГБ</td>
+                <td>
+                    {% set nvme_total = (server.nvme1_gb or 0) + (server.nvme2_gb or 0) + (server.nvme3_gb or 0) + (server.nvme4_gb or 0) + (server.nvme5_gb or 0) %}
+                    {% if nvme_total > 0 %}{{ nvme_total }} ГБ{% else %}—{% endif %}
+                </td>
                 <td>{{ "%.2f"|format(server.daily_cost) if server.daily_cost else "—" }} ₽</td>
                 <td>
-                    <a href="/servers/{{ server.id }}" class="btn btn-sm btn-info">Просмотр</a>
+                    <a href="/servers/{{ server.id }}/edit" class="btn btn-sm btn-warning">Ред.</a>
                     {% if server.status == 'draft' %}
                     <form method="post" action="/servers/{{ server.id }}/activate" style="display: inline;">
                         <button type="submit" class="btn btn-sm btn-success">Активировать</button>
@@ -79,7 +98,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="8" class="text-center">Нет серверов</td>
+                <td colspan="10" class="text-center">Нет серверов</td>
             </tr>
             {% endfor %}
         </tbody>
