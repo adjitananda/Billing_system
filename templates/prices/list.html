@@ -16,17 +16,17 @@
                 <th>CPU (₽/ядро/день)</th>
                 <th>RAM (₽/ГБ/день)</th>
                 <th>NVMe (₽/ГБ/день)</th>
-                <th>SATA (₽/ГБ/день)</th>
+                <th>HDD (₽/ГБ/день)</th>
             </tr>
         </thead>
         <tbody>
             {% for price in prices %}
             <tr>
-                <td>{{ price.start_date }}</td>
-                <td>{{ "%.2f"|format(price.cpu_price) }}</td>
-                <td>{{ "%.2f"|format(price.ram_price) }}</td>
-                <td>{{ "%.2f"|format(price.nvme_price) }}</td>
-                <td>{{ "%.2f"|format(price.sata_price) }}</td>
+                <td>{{ price.effective_from }}</td>
+                <td>{{ "%.2f"|format(price.cpu_price_per_core) }}</td>
+                <td>{{ "%.2f"|format(price.ram_price_per_gb) }}</td>
+                <td>{{ "%.2f"|format(price.nvme_price_per_gb) }}</td>
+                <td>{{ "%.2f"|format(price.hdd_price_per_gb) }}</td>
             </tr>
             {% else %}
             <tr>

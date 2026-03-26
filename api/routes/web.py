@@ -377,15 +377,21 @@ async def create_price_form(request: Request):
     return templates.TemplateResponse("prices/form.html", {"request": request})
 
 @router.post("/prices/create")
-async def create_price(request: Request, start_date: str = Form(...), cpu_price: float = Form(...), 
-                       ram_price: float = Form(...), nvme_price: float = Form(...), sata_price: float = Form(...)):
+async def create_price(
+    request: Request,
+    effective_from: str = Form(...),
+    cpu_price_per_core: float = Form(...),
+    ram_price_per_gb: float = Form(...),
+    nvme_price_per_gb: float = Form(...),
+    hdd_price_per_gb: float = Form(...)
+):
     """Создание новых цен"""
     data = {
-        "start_date": start_date,
-        "cpu_price": cpu_price,
-        "ram_price": ram_price,
-        "nvme_price": nvme_price,
-        "sata_price": sata_price
+        "effective_from": effective_from,
+        "cpu_price_per_core": cpu_price_per_core,
+        "ram_price_per_gb": ram_price_per_gb,
+        "nvme_price_per_gb": nvme_price_per_gb,
+        "hdd_price_per_gb": hdd_price_per_gb
     }
     await api_request("POST", "/prices/", json=data)
     return RedirectResponse(url="/prices", status_code=303)
