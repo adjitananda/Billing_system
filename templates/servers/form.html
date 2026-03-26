@@ -15,6 +15,7 @@
                         <label for="name" class="form-label">Название сервера</label>
                         <input type="text" class="form-control" id="name" name="name" value="{{ server.name if server else '' }}" required>
                     </div>
+                    
                     <div class="mb-3">
                         <label for="client_id" class="form-label">Клиент</label>
                         <select class="form-select" id="client_id" name="client_id" required>
@@ -26,8 +27,9 @@
                             {% endfor %}
                         </select>
                     </div>
+                    
                     <div class="mb-3">
-                        <label for="physical_server_id" class="form-label">Физический сервер</label>
+                        <label for="physical_server_id" class="form-label">Физический сервер (хост)</label>
                         <select class="form-select" id="physical_server_id" name="physical_server_id" required>
                             <option value="">Выберите хост</option>
                             {% for ps in physical_servers %}
@@ -37,16 +39,64 @@
                             {% endfor %}
                         </select>
                     </div>
+                    
+                    <div class="mb-3">
+                        <label for="purpose" class="form-label">Назначение</label>
+                        <select class="form-select" id="purpose" name="purpose" required>
+                            <option value="web">Web-сервер</option>
+                            <option value="database">База данных</option>
+                            <option value="app">Приложение</option>
+                            <option value="other">Другое</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="os" class="form-label">Операционная система</label>
+                        <select class="form-select" id="os" name="os" required>
+                            <option value="ubuntu22">Ubuntu 22.04</option>
+                            <option value="ubuntu20">Ubuntu 20.04</option>
+                            <option value="debian12">Debian 12</option>
+                            <option value="centos7">CentOS 7</option>
+                            <option value="rocky9">Rocky Linux 9</option>
+                        </select>
+                    </div>
+                    
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label for="cpu_cores" class="form-label">CPU (ядра)</label>
-                            <input type="number" class="form-control" id="cpu_cores" name="cpu_cores" value="{{ server.cpu_cores if server else 1 }}" required>
+                            <input type="number" class="form-control" id="cpu_cores" name="cpu_cores" value="{{ server.cpu_cores if server else 1 }}" min="1" required>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label for="ram_gb" class="form-label">RAM (ГБ)</label>
-                            <input type="number" class="form-control" id="ram_gb" name="ram_gb" value="{{ server.ram_gb if server else 1 }}" required>
+                            <input type="number" class="form-control" id="ram_gb" name="ram_gb" value="{{ server.ram_gb if server else 1 }}" min="1" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="hdd_gb" class="form-label">HDD (ГБ)</label>
+                            <input type="number" class="form-control" id="hdd_gb" name="hdd_gb" value="{{ server.hdd_gb if server else 0 }}" min="0">
                         </div>
                     </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">NVMe диски (ГБ)</label>
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <input type="number" class="form-control" name="nvme1_gb" placeholder="NVMe 1" value="{{ server.nvme1_gb if server else 0 }}" min="0">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <input type="number" class="form-control" name="nvme2_gb" placeholder="NVMe 2" value="{{ server.nvme2_gb if server else 0 }}" min="0">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <input type="number" class="form-control" name="nvme3_gb" placeholder="NVMe 3" value="{{ server.nvme3_gb if server else 0 }}" min="0">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <input type="number" class="form-control" name="nvme4_gb" placeholder="NVMe 4" value="{{ server.nvme4_gb if server else 0 }}" min="0">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <input type="number" class="form-control" name="nvme5_gb" placeholder="NVMe 5" value="{{ server.nvme5_gb if server else 0 }}" min="0">
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="d-flex justify-content-between">
                         <a href="/servers" class="btn btn-secondary">Отмена</a>
                         <button type="submit" class="btn btn-primary">Сохранить</button>

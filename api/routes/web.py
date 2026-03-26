@@ -165,8 +165,38 @@ async def create_server_form(request: Request, client_id: int = None):
     })
 
 @router.post("/servers/create")
-async def create_server(request: Request, name: str = Form(...), client_id: int = Form(...), physical_server_id: int = Form(...), cpu_cores: int = Form(...), ram_gb: int = Form(...)):
-    data = {"name": name, "client_id": client_id, "physical_server_id": physical_server_id, "cpu_cores": cpu_cores, "ram_gb": ram_gb}
+async def create_server(
+    request: Request,
+    name: str = Form(...),
+    client_id: int = Form(...),
+    physical_server_id: int = Form(...),
+    purpose: str = Form(...),
+    os: str = Form(...),
+    cpu_cores: int = Form(...),
+    ram_gb: int = Form(...),
+    hdd_gb: int = Form(0),
+    nvme1_gb: int = Form(0),
+    nvme2_gb: int = Form(0),
+    nvme3_gb: int = Form(0),
+    nvme4_gb: int = Form(0),
+    nvme5_gb: int = Form(0)
+):
+    """Создание сервера"""
+    data = {
+        "name": name,
+        "client_id": client_id,
+        "physical_server_id": physical_server_id,
+        "purpose": purpose,
+        "os": os,
+        "cpu_cores": cpu_cores,
+        "ram_gb": ram_gb,
+        "hdd_gb": hdd_gb,
+        "nvme1_gb": nvme1_gb,
+        "nvme2_gb": nvme2_gb,
+        "nvme3_gb": nvme3_gb,
+        "nvme4_gb": nvme4_gb,
+        "nvme5_gb": nvme5_gb
+    }
     await api_request("POST", "/servers/", json=data)
     return RedirectResponse(url="/servers", status_code=303)
 
@@ -174,6 +204,49 @@ async def create_server(request: Request, name: str = Form(...), client_id: int 
 async def server_detail(request: Request, server_id: int):
     server = await api_request("GET", f"/servers/{server_id}")
     return templates.TemplateResponse("servers/detail.html", {"request": request, "server": server})
+
+@router.get("/servers/{server_id}/edit", response_class=HTMLResponse)
+async def edit_server_form(request: Request, server_id: int):
+    """Форма редактирования сервера"""
+    try:
+        server = await api_request("GET", f"/servers/{server_id}")
+        return templates.TemplateResponse("servers/edit.html", {"request": request, "server": server})
+    except Exception as e:
+        return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
+
+@router.post("/servers/{server_id}/edit")
+async def edit_server(
+    request: Request,
+    server_id: int,
+    name: str = Form(...),
+    purpose: str = Form(...),
+    os: str = Form(...),
+    cpu_cores: int = Form(...),
+    ram_gb: int = Form(...),
+    hdd_gb: int = Form(0),
+    nvme1_gb: int = Form(0),
+    nvme2_gb: int = Form(0),
+    nvme3_gb: int = Form(0),
+    nvme4_gb: int = Form(0),
+    nvme5_gb: int = Form(0)
+):
+    """Редактирование сервера"""
+    data = {
+        "name": name,
+        "purpose": purpose,
+        "os": os,
+        "cpu_cores": cpu_cores,
+        "ram_gb": ram_gb,
+        "hdd_gb": hdd_gb,
+        "nvme1_gb": nvme1_gb,
+        "nvme2_gb": nvme2_gb,
+        "nvme3_gb": nvme3_gb,
+        "nvme4_gb": nvme4_gb,
+        "nvme5_gb": nvme5_gb
+    }
+    await api_request("PUT", f"/servers/{server_id}", json=data)
+    return RedirectResponse(url=f"/servers/{server_id}", status_code=303)
+
 
 @router.post("/servers/{server_id}/activate")
 async def activate_server(request: Request, server_id: int):

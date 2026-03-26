@@ -6,6 +6,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>{{ server.name }}</h1>
     <div>
+        <a href="/servers/{{ server.id }}/edit" class="btn btn-warning">Редактировать</a>
         {% if server.status == 'draft' %}
         <form method="post" action="/servers/{{ server.id }}/activate" style="display: inline;">
             <button type="submit" class="btn btn-success">Активировать</button>
@@ -29,8 +30,13 @@
                     <tr><th>ID:</th><td>{{ server.id }}</td></tr>
                     <tr><th>Название:</th><td>{{ server.name }}</td></tr>
                     <tr><th>Клиент:</th><td><a href="/clients/{{ server.client_id }}">{{ server.client_name or server.client_id }}</a></td></tr>
+                    <tr><th>Физический сервер:</th><td><a href="/physical-servers/{{ server.physical_server_id }}">{{ server.physical_server_name or server.physical_server_id }}</a></td></tr>
                     <tr><th>Статус:</th><td><span class="badge bg-{% if server.status == 'active' %}success{% elif server.status == 'draft' %}secondary{% else %}danger{% endif %}">{{ server.status }}</span></td></tr>
+                    <tr><th>Назначение:</th><td>{{ server.purpose or "—" }}</td></tr>
+                    <tr><th>ОС:</th><td>{{ server.os or "—" }}</td></tr>
                     <tr><th>Создан:</th><td>{{ server.created_at or "—" }}</td></tr>
+                    <tr><th>Активирован:</th><td>{{ server.start_date or "—" }}</td></tr>
+                    <tr><th>Деактивирован:</th><td>{{ server.stop_date or "—" }}</td></tr>
                 </table>
             </div>
         </div>
@@ -42,6 +48,17 @@
                 <table class="table table-sm">
                     <tr><th>CPU:</th><td>{{ server.cpu_cores }} ядер</td></tr>
                     <tr><th>RAM:</th><td>{{ server.ram_gb }} ГБ</td></tr>
+                    <tr><th>HDD:</th><td>{{ server.hdd_gb }} ГБ</td></tr>
+                    <tr><th>NVMe диски:</th>
+                        <td>
+                            {% if server.nvme1_gb > 0 %}NVMe1: {{ server.nvme1_gb }} ГБ<br>{% endif %}
+                            {% if server.nvme2_gb > 0 %}NVMe2: {{ server.nvme2_gb }} ГБ<br>{% endif %}
+                            {% if server.nvme3_gb > 0 %}NVMe3: {{ server.nvme3_gb }} ГБ<br>{% endif %}
+                            {% if server.nvme4_gb > 0 %}NVMe4: {{ server.nvme4_gb }} ГБ<br>{% endif %}
+                            {% if server.nvme5_gb > 0 %}NVMe5: {{ server.nvme5_gb }} ГБ<br>{% endif %}
+                            {% if not server.nvme1_gb and not server.nvme2_gb and not server.nvme3_gb and not server.nvme4_gb and not server.nvme5_gb %}—{% endif %}
+                        </td>
+                    </tr>
                     <tr><th>Стоимость в день:</th><td>{{ "%.2f"|format(server.daily_cost) if server.daily_cost else "—" }} ₽</td></tr>
                 </table>
             </div>
