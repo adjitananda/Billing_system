@@ -40,7 +40,6 @@ def get_current_month_period() -> tuple:
     """Возвращает (start_date, end_date) для текущего месяца."""
     today = date.today()
     start_date = date(today.year, today.month, 1)
-    # Последний день месяца
     last_day = calendar.monthrange(today.year, today.month)[1]
     end_date = date(today.year, today.month, last_day)
     return start_date, end_date
@@ -52,7 +51,6 @@ def validate_date_range(start_date: Optional[date], end_date: Optional[date]) ->
         return get_current_month_period()
     
     if not start_date:
-        # Если нет start_date, берем начало текущего месяца
         start_date, _ = get_current_month_period()
     
     if not end_date:
@@ -71,26 +69,18 @@ async def get_client_report(
     end_date: Optional[date] = Query(None, description="Конец периода (YYYY-MM-DD)"),
     detailed: bool = Query(False, description="Вернуть дневную разбивку")
 ):
-    """
-    Отчет по стоимости услуг клиента за период.
-    """
+    """Отчет по стоимости услуг клиента за период."""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     
     try:
-        # Валидируем период
         period_start, period_end = validate_date_range(start_date, end_date)
         
-        # Получаем информацию о клиенте
-        cursor.execute(
-            "SELECT id, name FROM clients WHERE id = %s",
-            (client_id,)
-        )
+        cursor.execute("SELECT id, name FROM clients WHERE id = %s", (client_id,))
         client = cursor.fetchone()
         if not client:
             raise HTTPException(status_code=404, detail=f"Клиент с id {client_id} не найден")
         
-        # Получаем агрегированные данные по серверам
         cursor.execute("""
             SELECT 
                 db.vm_id as server_id,
@@ -119,7 +109,6 @@ async def get_client_report(
         
         total_amount = sum(s.amount for s in servers)
         
-        # Дневная разбивка (если запрошена)
         daily_breakdown = None
         if detailed:
             cursor.execute("""
@@ -160,19 +149,43 @@ async def get_client_report(
 async def get_summary_report(
     start_date: Optional[date] = Query(None, description="Начало периода (YYYY-MM-DD)"),
     end_date: Optional[date] = Query(None, description="Конец периода (YYYY-MM-DD)"),
-    group_by: str = Query("client", description="Группировка: client или month")
+    group_by: str = Query("client", description="Группировка: client, month или day")
 ):
-    """
-    Сводный отчет по всем клиентам за период.
-    """
+    """Сводный отчет по всем клиентам за период."""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     
     try:
         period_start, period_end = validate_date_range(start_date, end_date)
         
+        # Группировка по дням
+        if group_by == "day":
+            cursor.execute("""
+                SELECT 
+                    billing_date as date,
+                    SUM(total_cost) as amount
+                FROM daily_billing
+                WHERE billing_date BETWEEN %s AND %s
+                GROUP BY billing_date
+                ORDER BY billing_date
+            """, (period_start, period_end))
+            
+            days_data = cursor.fetchall()
+            total = sum(Decimal(str(row['amount'])) for row in days_data)
+            
+            days = [
+                {"date": row['date'].isoformat(), "amount": float(row['amount'])}
+                for row in days_data
+            ]
+            
+            return {
+                "period": {"start": period_start, "end": period_end},
+                "total": float(total),
+                "days": days
+            }
+        
         # Группировка по клиентам
-        if group_by == "client":
+        elif group_by == "client":
             cursor.execute("""
                 SELECT 
                     db.client_id,
@@ -237,7 +250,7 @@ async def get_summary_report(
         else:
             raise HTTPException(
                 status_code=400,
-                detail=f"Некорректное значение group_by: {group_by}. Допустимо: client, month"
+                detail=f"Некорректное значение group_by: {group_by}. Допустимо: client, month, day"
             )
             
     finally:
@@ -249,16 +262,13 @@ async def get_summary_report(
 async def get_datacenter_report(
     date_param: Optional[date] = Query(None, alias="date", description="Дата среза (YYYY-MM-DD), по умолчанию сегодня")
 ):
-    """
-    Отчет по загрузке дата-центра на указанную дату.
-    """
+    """Отчет по загрузке дата-центра на указанную дату."""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     
     try:
         target_date = date_param or date.today()
         
-        # Получаем использованные ресурсы из daily_billing
         cursor.execute("""
             SELECT 
                 SUM(cpu_cores) as used_cores,
@@ -271,7 +281,6 @@ async def get_datacenter_report(
         
         used_resources = cursor.fetchone() or {}
         
-        # Получаем физические серверы
         cursor.execute("""
             SELECT id, name, total_cores, total_ram_gb, total_nvme_gb, total_sata_gb
             FROM physical_servers
@@ -291,7 +300,6 @@ async def get_datacenter_report(
                 )
             )
         
-        # Суммируем общие ресурсы
         total_resources = {
             'cores': sum(ps['total_cores'] for ps in physical_servers),
             'ram_gb': sum(ps['total_ram_gb'] for ps in physical_servers),
@@ -299,7 +307,6 @@ async def get_datacenter_report(
             'sata_gb': sum(ps['total_sata_gb'] for ps in physical_servers)
         }
         
-        # Использованные ресурсы
         used = {
             'cores': used_resources.get('used_cores', 0) or 0,
             'ram_gb': used_resources.get('used_ram', 0) or 0,
@@ -307,7 +314,6 @@ async def get_datacenter_report(
             'sata_gb': used_resources.get('used_hdd', 0) or 0
         }
         
-        # Рассчитываем проценты использования для каждого физического сервера
         physical_servers_list = []
         
         for ps in physical_servers:
@@ -341,7 +347,6 @@ async def get_datacenter_report(
                 )
             )
         
-        # Общие проценты использования
         total_usage = UsagePercent(
             cores=round((used['cores'] / total_resources['cores'] * 100), 1) if total_resources['cores'] > 0 else 0,
             ram_gb=round((used['ram_gb'] / total_resources['ram_gb'] * 100), 1) if total_resources['ram_gb'] > 0 else 0,
@@ -366,16 +371,13 @@ async def get_server_history_report(
     start_date: Optional[date] = Query(None, description="Начало периода (YYYY-MM-DD)"),
     end_date: Optional[date] = Query(None, description="Конец периода (YYYY-MM-DD)")
 ):
-    """
-    Отчет по истории стоимости конкретного сервера.
-    """
+    """Отчет по истории стоимости конкретного сервера."""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     
     try:
         period_start, period_end = validate_date_range(start_date, end_date)
         
-        # Получаем информацию о сервере и клиенте
         cursor.execute("""
             SELECT vs.id, vs.name, vs.client_id, c.name as client_name
             FROM virtual_servers vs
@@ -387,7 +389,6 @@ async def get_server_history_report(
         if not server:
             raise HTTPException(status_code=404, detail=f"Сервер с id {server_id} не найден")
         
-        # Получаем дневную разбивку из daily_billing
         cursor.execute("""
             SELECT 
                 billing_date as date,
@@ -404,9 +405,7 @@ async def get_server_history_report(
         
         daily_data = cursor.fetchall()
         
-        # Если нет данных в daily_billing, пробуем рассчитать вручную
         if not daily_data:
-            # Генерируем даты периода
             current_date = period_start
             daily_breakdown = []
             total_amount = Decimal('0')
@@ -433,7 +432,6 @@ async def get_server_history_report(
             
             days = len(daily_breakdown)
         else:
-            # Формируем из существующих данных
             daily_breakdown = []
             total_amount = Decimal('0')
             
@@ -453,7 +451,6 @@ async def get_server_history_report(
             
             days = len(daily_breakdown)
         
-        # Получаем историю изменений конфигурации
         cursor.execute("""
             SELECT 
                 effective_from,
@@ -469,7 +466,6 @@ async def get_server_history_report(
         
         config_history = cursor.fetchall()
         
-        # Также добавляем начальную конфигурацию из virtual_servers, если она попадает в период
         cursor.execute("""
             SELECT start_date as effective_from, cpu_cores, ram_gb,
                    nvme1_gb, nvme2_gb, nvme3_gb, nvme4_gb, nvme5_gb,
