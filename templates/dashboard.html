@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Главная панель{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Панель управления</h1>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Выручка за месяц</h5>
+                <h2 class="card-text">{{ "%.2f"|format(total_month) }} ₽</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Активные серверы</h5>
+                <h2 class="card-text">{{ active_servers }} / {{ total_servers }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">Клиенты</h5>
+                <h2 class="card-text">{{ total_clients }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">Загрузка ДЦ</h5>
+                <h2 class="card-text">{{ "%.1f"|format(dc_load) }}%</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5>Динамика выручки за последние 30 дней</h5>
+    </div>
+    <div class="card-body">
+        <canvas id="revenueChart" height="100"></canvas>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Быстрые ссылки</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    <li class="list-group-item"><a href="/clients">📋 Управление клиентами</a></li>
+                    <li class="list-group-item"><a href="/servers">🖥️ Управление серверами</a></li>
+                    <li class="list-group-item"><a href="/physical-servers">🖧 Управление хостами</a></li>
+                    <li class="list-group-item"><a href="/datacenter">📊 Загрузка дата-центра</a></li>
+                    <li class="list-group-item"><a href="/prices">💰 Управление ценами</a></li>
+                    <li class="list-group-item"><a href="/reports">📈 Отчёты</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Информация</h5>
+            </div>
+            <div class="card-body">
+                <p>Биллинговая система дата-центра</p>
+                <p><strong>Всего серверов:</strong> {{ total_servers }}</p>
+                <p><strong>Активных серверов:</strong> {{ active_servers }}</p>
+                <p><strong>Клиентов:</strong> {{ total_clients }}</p>
+                <p><strong>Выручка за месяц:</strong> {{ "%.2f"|format(total_month) }} ₽</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ days|safe }},
+            datasets: [{
+                label: 'Выручка за день (₽)',
+                data: {{ amounts|safe }},
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString() + ' ₽';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.raw.toLocaleString() + ' ₽';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

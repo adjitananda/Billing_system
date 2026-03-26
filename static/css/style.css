@@ -1,0 +1,28 @@
+/* Дополнительные стили */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.progress {
+    height: 20px;
+    margin: 5px 0;
+}
+
+.card-stats {
+    transition: transform 0.2s;
+}
+
+.card-stats:hover {
+    transform: translateY(-5px);
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #4e73df, #224abe);
+}
+
+.footer {
+    margin-top: 50px;
+    padding: 20px 0;
+    background-color: #f8f9fa;
+    text-align: center;
+}

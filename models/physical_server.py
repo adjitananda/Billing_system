@@ -195,3 +195,97 @@ class PhysicalServer(BaseModel):
         except Exception as e:
             logger.error(f"Ошибка при получении доступных ресурсов: {e}")
             return []
+    @classmethod
+    def get_all(cls, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
+        """Получить все физические серверы"""
+        from config.database import get_connection
+        get_db_connection = get_connection
+        
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(f"""
+                SELECT * FROM {cls.TABLE_NAME} 
+                ORDER BY id 
+                LIMIT %s OFFSET %s
+            """, (limit, offset))
+            return cursor.fetchall()
+        finally:
+            conn.close()
+    
+    @classmethod
+    def get_by_id(cls, server_id: int) -> Optional[Dict[str, Any]]:
+        """Получить физический сервер по ID"""
+        from config.database import get_connection
+        get_db_connection = get_connection
+        
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(f"""
+                SELECT * FROM {cls.TABLE_NAME} 
+                WHERE id = %s
+            """, (server_id,))
+            return cursor.fetchone()
+        finally:
+            conn.close()
+    
+    @classmethod
+    def create(cls, data: Dict[str, Any]) -> Optional[int]:
+        """Создать новый физический сервер"""
+        from config.database import get_connection
+        get_db_connection = get_connection
+        
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            query = f"""
+                INSERT INTO {cls.TABLE_NAME} 
+                (name, total_cores, total_ram_gb, total_nvme_gb, total_hdd_gb) 
+                VALUES (%s, %s, %s, %s, %s)
+            """
+            cursor.execute(query, (
+                data['name'],
+                data['total_cores'],
+                data['total_ram_gb'],
+                data.get('total_nvme_gb', 0),
+                data.get('total_hdd_gb', 0)
+            ))
+            conn.commit()
+            return cursor.lastrowid
+        finally:
+            conn.close()
+    
+    @classmethod
+    def update(cls, server_id: int, data: Dict[str, Any]) -> bool:
+        """Обновить физический сервер"""
+        from config.database import get_connection
+        get_db_connection = get_connection
+        
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            set_clause = ", ".join([f"{k} = %s" for k in data.keys()])
+            values = list(data.values())
+            values.append(server_id)
+            query = f"UPDATE {cls.TABLE_NAME} SET {set_clause} WHERE id = %s"
+            cursor.execute(query, values)
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()
+    
+    @classmethod
+    def delete(cls, server_id: int) -> bool:
+        """Удалить физический сервер"""
+        from config.database import get_connection
+        get_db_connection = get_connection
+        
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(f"DELETE FROM {cls.TABLE_NAME} WHERE id = %s", (server_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()

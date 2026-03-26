@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}{% if server %}Редактировать сервер{% else %}Новый сервер{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>{% if server %}Редактировать сервер{% else %}Добавить сервер{% endif %}</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Название сервера</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ server.name if server else '' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="client_id" class="form-label">Клиент</label>
+                        <select class="form-select" id="client_id" name="client_id" required>
+                            <option value="">Выберите клиента</option>
+                            {% for client in clients %}
+                            <option value="{{ client.id }}" {% if (client_id and client_id == client.id) or (server and server.client_id == client.id) %}selected{% endif %}>
+                                {{ client.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="physical_server_id" class="form-label">Физический сервер</label>
+                        <select class="form-select" id="physical_server_id" name="physical_server_id" required>
+                            <option value="">Выберите хост</option>
+                            {% for ps in physical_servers %}
+                            <option value="{{ ps.id }}" {% if server and server.physical_server_id == ps.id %}selected{% endif %}>
+                                {{ ps.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="cpu_cores" class="form-label">CPU (ядра)</label>
+                            <input type="number" class="form-control" id="cpu_cores" name="cpu_cores" value="{{ server.cpu_cores if server else 1 }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="ram_gb" class="form-label">RAM (ГБ)</label>
+                            <input type="number" class="form-control" id="ram_gb" name="ram_gb" value="{{ server.ram_gb if server else 1 }}" required>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="/servers" class="btn btn-secondary">Отмена</a>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

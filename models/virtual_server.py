@@ -263,3 +263,39 @@ class VirtualServer(BaseModel):
         except Exception as e:
             logger.error(f"Ошибка при изменении статуса сервера: {e}")
             return False
+    @classmethod
+    def get_by_physical_server(cls, physical_server_id: int) -> List[Dict]:
+        """Получить все виртуальные серверы на физическом сервере"""
+        from config.database import get_connection
+        get_db_connection = get_connection
+        
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("""
+                SELECT * FROM virtual_servers 
+                WHERE physical_server_id = %s 
+                ORDER BY id
+            """, (physical_server_id,))
+            return cursor.fetchall()
+        finally:
+            conn.close()
+
+    @classmethod
+    def get_by_physical_server(cls, physical_server_id: int) -> List[Dict]:
+        """Получить все виртуальные серверы на физическом сервере"""
+        from config.database import get_connection
+        get_db_connection = get_connection
+        
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("""
+                SELECT vs.*, vs.cpu_cores, vs.ram_gb
+                FROM virtual_servers vs
+                WHERE vs.physical_server_id = %s 
+                ORDER BY vs.id
+            """, (physical_server_id,))
+            return cursor.fetchall()
+        finally:
+            conn.close()

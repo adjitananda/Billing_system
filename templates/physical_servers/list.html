@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Физические серверы - Биллинг ДЦ{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Физические серверы (хосты)</h1>
+    <a href="/physical-servers/create" class="btn btn-primary">+ Добавить хост</a>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Название</th>
+                <th>Всего ядер</th>
+                <th>RAM (ГБ)</th>
+                <th>NVMe (ГБ)</th>
+                <th>HDD (ГБ)</th>
+                <th>Занято (%)</th>
+                <th>Количество VM</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for server in physical_servers %}
+            <tr>
+                <td>{{ server.id }}</td>
+                <td><a href="/physical-servers/{{ server.id }}">{{ server.name }}</a></td>
+                <td>{{ server.total_cores }}</td>
+                <td>{{ server.total_ram_gb }}</td>
+                <td>{{ server.total_nvme_gb }}</td>
+                <td>{{ server.total_hdd_gb }}</td>
+                <td>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-{% if server.usage_percent < 70 %}success{% elif server.usage_percent < 90 %}warning{% else %}danger{% endif %}" 
+                             style="width: {{ server.usage_percent }}%">
+                            {{ server.usage_percent }}%
+                        </div>
+                    </div>
+                </td>
+                <td>{{ server.vm_count }}</td>
+                <td>
+                    <a href="/physical-servers/{{ server.id }}/edit" class="btn btn-sm btn-warning">Ред.</a>
+                    <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ server.id }}, '{{ server.name }}')">Удалить</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9" class="text-center">Нет физических серверов</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<form id="deleteForm" method="post" style="display: none;"></form>
+
+<script>
+function confirmDelete(id, name) {
+    if (confirm(`Удалить хост "${name}"? Все виртуальные серверы на нём также будут удалены.`)) {
+        const form = document.getElementById('deleteForm');
+        form.action = `/physical-servers/${id}/delete`;
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

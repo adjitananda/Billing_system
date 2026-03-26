@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Загрузка дата-центра{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Загрузка дата-центра</h1>
+<p class="text-muted mb-4">Данные на {{ report.date }}</p>
+
+<div class="row">
+    {% for server in report.physical_servers %}
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">{{ server.server_name }}</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">CPU ({{ server.used.cores }} / {{ server.total.cores }})</label>
+                    <div class="progress">
+                        <div class="progress-bar {% if server.usage_percent.cores < 70 %}bg-success{% elif server.usage_percent.cores < 90 %}bg-warning{% else %}bg-danger{% endif %}" 
+                             style="width: {{ server.usage_percent.cores }}%">
+                            {{ "%.1f"|format(server.usage_percent.cores) }}%
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">RAM ({{ server.used.ram_gb }} / {{ server.total.ram_gb }} ГБ)</label>
+                    <div class="progress">
+                        <div class="progress-bar {% if server.usage_percent.ram_gb < 70 %}bg-success{% elif server.usage_percent.ram_gb < 90 %}bg-warning{% else %}bg-danger{% endif %}" 
+                             style="width: {{ server.usage_percent.ram_gb }}%">
+                            {{ "%.1f"|format(server.usage_percent.ram_gb) }}%
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">NVMe ({{ server.used.nvme_gb }} / {{ server.total.nvme_gb }} ГБ)</label>
+                    <div class="progress">
+                        <div class="progress-bar {% if server.usage_percent.nvme_gb < 70 %}bg-success{% elif server.usage_percent.nvme_gb < 90 %}bg-warning{% else %}bg-danger{% endif %}" 
+                             style="width: {{ server.usage_percent.nvme_gb }}%">
+                            {{ "%.1f"|format(server.usage_percent.nvme_gb) }}%
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">SATA ({{ server.used.sata_gb }} / {{ server.total.sata_gb }} ГБ)</label>
+                    <div class="progress">
+                        <div class="progress-bar {% if server.usage_percent.sata_gb < 70 %}bg-success{% elif server.usage_percent.sata_gb < 90 %}bg-warning{% else %}bg-danger{% endif %}" 
+                             style="width: {{ server.usage_percent.sata_gb }}%">
+                            {{ "%.1f"|format(server.usage_percent.sata_gb) }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

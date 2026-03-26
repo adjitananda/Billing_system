@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} - Карточка клиента{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ client.name }}</h1>
+    <div>
+        <a href="/clients/{{ client.id }}/edit" class="btn btn-warning">Редактировать</a>
+        <button class="btn btn-danger" onclick="confirmDelete()">Удалить</button>
+        <a href="/clients" class="btn btn-secondary">Назад</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Серверы клиента</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Название</th>
+                                <th>Статус</th>
+                                <th>CPU</th>
+                                <th>RAM (ГБ)</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for server in servers %}
+                            <tr>
+                                <td>{{ server.id }}</td>
+                                <td><a href="/servers/{{ server.id }}">{{ server.name }}</a></td>
+                                <td>
+                                    <span class="badge bg-{% if server.status == 'active' %}success{% elif server.status == 'draft' %}secondary{% else %}danger{% endif %}">
+                                        {{ server.status }}
+                                    </span>
+                                </td>
+                                <td>{{ server.cpu_cores }}</td>
+                                <td>{{ server.ram_gb }}</td>
+                                <td>
+                                    <a href="/servers/{{ server.id }}" class="btn btn-sm btn-info">Просмотр</a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center">Нет серверов у этого клиента</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <a href="/servers/create?client_id={{ client.id }}" class="btn btn-primary mt-3">+ Добавить сервер</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="deleteForm" method="post" action="/clients/{{ client.id }}/delete" style="display: none;"></form>
+
+<script>
+function confirmDelete() {
+    if (confirm('Удалить клиента "{{ client.name }}"? Все серверы клиента также будут удалены.')) {
+        document.getElementById('deleteForm').submit();
+    }
+}
+</script>
+{% endblock %}

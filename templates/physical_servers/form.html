@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}{% if server %}Редактировать хост{% else %}Новый хост{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>{% if server %}Редактировать хост{% else %}Добавить хост{% endif %}</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Название хоста</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ server.name if server else '' }}" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="total_cores" class="form-label">Всего ядер CPU</label>
+                            <input type="number" class="form-control" id="total_cores" name="total_cores" value="{{ server.total_cores if server else 8 }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="total_ram_gb" class="form-label">Всего RAM (ГБ)</label>
+                            <input type="number" class="form-control" id="total_ram_gb" name="total_ram_gb" value="{{ server.total_ram_gb if server else 32 }}" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="total_nvme_gb" class="form-label">Всего NVMe (ГБ)</label>
+                            <input type="number" class="form-control" id="total_nvme_gb" name="total_nvme_gb" value="{{ server.total_nvme_gb if server else 500 }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="total_hdd_gb" class="form-label">Всего HDD (ГБ)</label>
+                            <input type="number" class="form-control" id="total_hdd_gb" name="total_hdd_gb" value="{{ server.total_hdd_gb if server else 1000 }}" required>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="/physical-servers" class="btn btn-secondary">Отмена</a>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

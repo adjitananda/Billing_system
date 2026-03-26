@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Серверы - Биллинг ДЦ{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Виртуальные серверы</h1>
+    <a href="/servers/create" class="btn btn-primary">+ Добавить сервер</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <select name="status" class="form-select">
+                    <option value="">Все статусы</option>
+                    <option value="active" {% if status == 'active' %}selected{% endif %}>Активен</option>
+                    <option value="draft" {% if status == 'draft' %}selected{% endif %}>Черновик</option>
+                    <option value="deactivated" {% if status == 'deactivated' %}selected{% endif %}>Деактивирован</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select name="client_id" class="form-select">
+                    <option value="">Все клиенты</option>
+                    {% for client in clients %}
+                    <option value="{{ client.id }}" {% if client_id == client.id %}selected{% endif %}>{{ client.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-secondary">Фильтр</button>
+                <a href="/servers" class="btn btn-link">Сбросить</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Название</th>
+                <th>Клиент</th>
+                <th>Статус</th>
+                <th>CPU</th>
+                <th>RAM (ГБ)</th>
+                <th>Стоимость/день</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for server in servers %}
+            <tr>
+                <td>{{ server.id }}</td>
+                <td><a href="/servers/{{ server.id }}">{{ server.name }}</a></td>
+                <td>{{ server.client_name if server.client_name else "—" }}</td>
+                <td>
+                    <span class="badge bg-{% if server.status == 'active' %}success{% elif server.status == 'draft' %}secondary{% else %}danger{% endif %}">
+                        {{ server.status }}
+                    </span>
+                </td>
+                <td>{{ server.cpu_cores }}</td>
+                <td>{{ server.ram_gb }}</td>
+                <td>{{ "%.2f"|format(server.daily_cost) if server.daily_cost else "—" }} ₽</td>
+                <td>
+                    <a href="/servers/{{ server.id }}" class="btn btn-sm btn-info">Просмотр</a>
+                    {% if server.status == 'draft' %}
+                    <form method="post" action="/servers/{{ server.id }}/activate" style="display: inline;">
+                        <button type="submit" class="btn btn-sm btn-success">Активировать</button>
+                    </form>
+                    {% elif server.status == 'active' %}
+                    <form method="post" action="/servers/{{ server.id }}/deactivate" style="display: inline;">
+                        <button type="submit" class="btn btn-sm btn-warning">Деактивировать</button>
+                    </form>
+                    {% endif %}
+                    <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ server.id }}, '{{ server.name }}')">Удалить</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="text-center">Нет серверов</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<form id="deleteForm" method="post" style="display: none;"></form>
+
+<script>
+function confirmDelete(id, name) {
+    if (confirm(`Удалить сервер "${name}"?`)) {
+        const form = document.getElementById('deleteForm');
+        form.action = `/servers/${id}/delete`;
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

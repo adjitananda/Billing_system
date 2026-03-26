@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Добавить цены{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>Добавить новые цены</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="start_date" class="form-label">Дата начала действия</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" required>
+                        <div class="form-text">Цены будут действовать с указанной даты</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="cpu_price" class="form-label">CPU (₽/ядро/день)</label>
+                            <input type="number" step="0.01" class="form-control" id="cpu_price" name="cpu_price" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="ram_price" class="form-label">RAM (₽/ГБ/день)</label>
+                            <input type="number" step="0.01" class="form-control" id="ram_price" name="ram_price" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nvme_price" class="form-label">NVMe (₽/ГБ/день)</label>
+                            <input type="number" step="0.01" class="form-control" id="nvme_price" name="nvme_price" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="sata_price" class="form-label">SATA (₽/ГБ/день)</label>
+                            <input type="number" step="0.01" class="form-control" id="sata_price" name="sata_price" required>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="/prices" class="btn btn-secondary">Отмена</a>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

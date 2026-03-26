@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}{{ server.name }} - Карточка сервера{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ server.name }}</h1>
+    <div>
+        {% if server.status == 'draft' %}
+        <form method="post" action="/servers/{{ server.id }}/activate" style="display: inline;">
+            <button type="submit" class="btn btn-success">Активировать</button>
+        </form>
+        {% elif server.status == 'active' %}
+        <form method="post" action="/servers/{{ server.id }}/deactivate" style="display: inline;">
+            <button type="submit" class="btn btn-warning">Деактивировать</button>
+        </form>
+        {% endif %}
+        <button class="btn btn-danger" onclick="confirmDelete()">Удалить</button>
+        <a href="/servers" class="btn btn-secondary">Назад</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header">Основная информация</div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr><th>ID:</th><td>{{ server.id }}</td></tr>
+                    <tr><th>Название:</th><td>{{ server.name }}</td></tr>
+                    <tr><th>Клиент:</th><td><a href="/clients/{{ server.client_id }}">{{ server.client_name or server.client_id }}</a></td></tr>
+                    <tr><th>Статус:</th><td><span class="badge bg-{% if server.status == 'active' %}success{% elif server.status == 'draft' %}secondary{% else %}danger{% endif %}">{{ server.status }}</span></td></tr>
+                    <tr><th>Создан:</th><td>{{ server.created_at or "—" }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header">Ресурсы</div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr><th>CPU:</th><td>{{ server.cpu_cores }} ядер</td></tr>
+                    <tr><th>RAM:</th><td>{{ server.ram_gb }} ГБ</td></tr>
+                    <tr><th>Стоимость в день:</th><td>{{ "%.2f"|format(server.daily_cost) if server.daily_cost else "—" }} ₽</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="deleteForm" method="post" action="/servers/{{ server.id }}/delete" style="display: none;"></form>
+
+<script>
+function confirmDelete() {
+    if (confirm('Удалить сервер "{{ server.name }}"?')) {
+        document.getElementById('deleteForm').submit();
+    }
+}
+</script>
+{% endblock %}

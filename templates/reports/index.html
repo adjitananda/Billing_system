@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Отчёты{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Формирование отчётов</h1>
+
+<div class="card">
+    <div class="card-header">
+        <h5>Параметры отчёта</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" id="reportForm">
+            <div class="mb-3">
+                <label for="report_type" class="form-label">Тип отчёта</label>
+                <select class="form-select" id="report_type" name="report_type" required>
+                    <option value="summary">Сводный отчёт по всем клиентам</option>
+                    <option value="client">Отчёт по клиенту</option>
+                    <option value="server">История сервера</option>
+                </select>
+            </div>
+            
+            <div class="mb-3" id="client_block" style="display: none;">
+                <label for="client_id" class="form-label">Клиент</label>
+                <select class="form-select" id="client_id" name="client_id">
+                    <option value="">Выберите клиента</option>
+                    {% for client in clients %}
+                    <option value="{{ client.id }}">{{ client.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="mb-3" id="server_block" style="display: none;">
+                <label for="server_id" class="form-label">Сервер</label>
+                <input type="number" class="form-control" id="server_id" name="server_id" placeholder="ID сервера">
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="start_date" class="form-label">Дата начала</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="end_date" class="form-label">Дата окончания</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" required>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Сформировать отчёт</button>
+        </form>
+    </div>
+</div>
+
+<div id="report_result" class="mt-4" style="display: none;">
+    <div class="card">
+        <div class="card-header">
+            <h5>Результат отчёта</h5>
+        </div>
+        <div class="card-body">
+            <div id="report_content"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const reportType = document.getElementById('report_type');
+    const clientBlock = document.getElementById('client_block');
+    const serverBlock = document.getElementById('server_block');
+    
+    reportType.addEventListener('change', function() {
+        clientBlock.style.display = 'none';
+        serverBlock.style.display = 'none';
+        if (this.value === 'client') {
+            clientBlock.style.display = 'block';
+        } else if (this.value === 'server') {
+            serverBlock.style.display = 'block';
+        }
+    });
+    
+    document.getElementById('reportForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const reportType = formData.get('report_type');
+        let url = '';
+        
+        if (reportType === 'summary') {
+            url = `/api/v1/reports/summary?start_date=${formData.get('start_date')}&end_date=${formData.get('end_date')}`;
+        } else if (reportType === 'client') {
+            const clientId = formData.get('client_id');
+            if (!clientId) { alert('Выберите клиента'); return; }
+            url = `/api/v1/reports/client/${clientId}?start_date=${formData.get('start_date')}&end_date=${formData.get('end_date')}`;
+        } else if (reportType === 'server') {
+            const serverId = formData.get('server_id');
+            if (!serverId) { alert('Введите ID сервера'); return; }
+            url = `/api/v1/reports/server/${serverId}?start_date=${formData.get('start_date')}&end_date=${formData.get('end_date')}`;
+        }
+        
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            document.getElementById('report_content').innerHTML = `
+                <h6>Период: ${formData.get('start_date')} — ${formData.get('end_date')}</h6>
+                <h4 class="text-success">Итого: ${data.total || 0} ₽</h4>
+                <pre class="mt-3 bg-light p-3">${JSON.stringify(data, null, 2)}</pre>
+            `;
+            document.getElementById('report_result').style.display = 'block';
+        } catch (error) {
+            alert('Ошибка при формировании отчёта: ' + error.message);
+        }
+    });
+</script>
+{% endblock %}
