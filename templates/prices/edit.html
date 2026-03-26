@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Редактировать цены{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>Редактировать цены от {{ price.effective_from }}</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="effective_from" class="form-label">Дата начала действия</label>
+                        <input type="date" class="form-control" id="effective_from" name="effective_from" value="{{ price.effective_from }}" required>
+                        <div class="form-text">Цены будут действовать с указанной даты</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="cpu_price_per_core" class="form-label">CPU (₽/ядро/день)</label>
+                            <input type="number" step="0.01" class="form-control" id="cpu_price_per_core" name="cpu_price_per_core" value="{{ price.cpu_price_per_core }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="ram_price_per_gb" class="form-label">RAM (₽/ГБ/день)</label>
+                            <input type="number" step="0.01" class="form-control" id="ram_price_per_gb" name="ram_price_per_gb" value="{{ price.ram_price_per_gb }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nvme_price_per_gb" class="form-label">NVMe (₽/ГБ/день)</label>
+                            <input type="number" step="0.01" class="form-control" id="nvme_price_per_gb" name="nvme_price_per_gb" value="{{ price.nvme_price_per_gb }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="hdd_price_per_gb" class="form-label">HDD (₽/ГБ/день)</label>
+                            <input type="number" step="0.01" class="form-control" id="hdd_price_per_gb" name="hdd_price_per_gb" value="{{ price.hdd_price_per_gb }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="/prices" class="btn btn-secondary">Отмена</a>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

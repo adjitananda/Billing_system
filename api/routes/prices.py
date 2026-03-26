@@ -30,6 +30,22 @@ def check_date_overlap(db: MySQLConnection, effective_from: date, exclude_id: in
     return result is not None
 
 
+def is_price_used_in_billing(db: MySQLConnection, price_id: int) -> bool:
+    """Check if price is used in billing records."""
+    cursor = db.cursor()
+    # Проверяем, есть ли записи биллинга, созданные в период действия этой цены
+    cursor.execute("""
+        SELECT COUNT(*) FROM daily_billing db
+        JOIN resource_prices p ON db.billing_date >= p.effective_from
+        WHERE p.id = %s AND db.billing_date < (
+            SELECT MIN(effective_from) FROM resource_prices WHERE effective_from > p.effective_from
+        )
+    """, (price_id,))
+    count = cursor.fetchone()[0]
+    cursor.close()
+    return count > 0
+
+
 @router.get("/", response_model=List[PriceResponse])
 async def get_prices(db: MySQLConnection = Depends(get_db)):
     """Get all price records."""
@@ -67,6 +83,25 @@ async def get_current_price(db: MySQLConnection = Depends(get_db)):
     
     if not row:
         raise HTTPException(status_code=404, detail="No price found for current date")
+    
+    # Convert Decimal to float
+    for key in ['cpu_price_per_core', 'ram_price_per_gb', 'nvme_price_per_gb', 'hdd_price_per_gb']:
+        if row.get(key) is not None:
+            row[key] = float(row[key])
+    
+    return PriceResponse(**row)
+
+
+@router.get("/by-id/{price_id}", response_model=PriceResponse)
+async def get_price_by_id(price_id: int, db: MySQLConnection = Depends(get_db)):
+    """Get price by ID."""
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM resource_prices WHERE id = %s", (price_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    
+    if not row:
+        raise HTTPException(status_code=404, detail="Price not found")
     
     # Convert Decimal to float
     for key in ['cpu_price_per_core', 'ram_price_per_gb', 'nvme_price_per_gb', 'hdd_price_per_gb']:
@@ -140,3 +175,73 @@ async def create_price(
             row[key] = float(row[key])
     
     return PriceResponse(**row)
+
+
+@router.put("/{price_id}", response_model=PriceResponse)
+async def update_price(
+    price_id: int,
+    price_data: PriceCreate,
+    db: MySQLConnection = Depends(get_db)
+):
+    """Update price by ID (only if not used in billing)."""
+    cursor = db.cursor(dictionary=True)
+    
+    # Check if price exists
+    cursor.execute("SELECT id, effective_from FROM resource_prices WHERE id = %s", (price_id,))
+    price = cursor.fetchone()
+    if not price:
+        cursor.close()
+        raise HTTPException(status_code=404, detail="Price not found")
+    
+    # Check if this price is used in billing
+    if is_price_used_in_billing(db, price_id):
+        cursor.close()
+        raise HTTPException(status_code=400, detail="Cannot edit price that is already used in billing")
+    
+    # Update price
+    cursor.execute("""
+        UPDATE resource_prices 
+        SET effective_from = %s, cpu_price_per_core = %s, ram_price_per_gb = %s,
+            nvme_price_per_gb = %s, hdd_price_per_gb = %s
+        WHERE id = %s
+    """, (price_data.effective_from, price_data.cpu_price_per_core,
+          price_data.ram_price_per_gb, price_data.nvme_price_per_gb,
+          price_data.hdd_price_per_gb, price_id))
+    db.commit()
+    
+    # Fetch updated price
+    cursor.execute("SELECT * FROM resource_prices WHERE id = %s", (price_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    
+    # Convert Decimal to float
+    for key in ['cpu_price_per_core', 'ram_price_per_gb', 'nvme_price_per_gb', 'hdd_price_per_gb']:
+        if row.get(key) is not None:
+            row[key] = float(row[key])
+    
+    return PriceResponse(**row)
+
+
+@router.delete("/{price_id}", status_code=204)
+async def delete_price(
+    price_id: int,
+    db: MySQLConnection = Depends(get_db)
+):
+    """Delete price by ID (only if not used in billing)."""
+    cursor = db.cursor(dictionary=True)
+    
+    # Check if price exists
+    cursor.execute("SELECT id FROM resource_prices WHERE id = %s", (price_id,))
+    if not cursor.fetchone():
+        cursor.close()
+        raise HTTPException(status_code=404, detail="Price not found")
+    
+    # Check if this price is used in billing
+    if is_price_used_in_billing(db, price_id):
+        cursor.close()
+        raise HTTPException(status_code=400, detail="Cannot delete price that is already used in billing")
+    
+    cursor.execute("DELETE FROM resource_prices WHERE id = %s", (price_id,))
+    db.commit()
+    cursor.close()
+    return None

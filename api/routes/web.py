@@ -367,7 +367,14 @@ async def list_prices(request: Request):
     """Список цен на ресурсы"""
     try:
         prices = await api_request("GET", "/prices/")
-        return templates.TemplateResponse("prices/list.html", {"request": request, "prices": prices})
+        today_str = date.today().isoformat()
+        return templates.TemplateResponse("prices/list.html", {
+            "request": request, 
+            "prices": prices,
+            "now": today_str
+        })
+    except Exception as e:
+        return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
     except Exception as e:
         return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
 
@@ -395,6 +402,51 @@ async def create_price(
     }
     await api_request("POST", "/prices/", json=data)
     return RedirectResponse(url="/prices", status_code=303)
+
+@router.get("/prices/{price_id}/edit", response_class=HTMLResponse)
+async def edit_price_form(request: Request, price_id: int):
+    """Форма редактирования цен"""
+    try:
+        # Получаем цену по ID через API
+        price = await api_request("GET", f"/prices/by-id/{price_id}")
+        return templates.TemplateResponse("prices/edit.html", {"request": request, "price": price})
+    except Exception as e:
+        return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
+    except Exception as e:
+        return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
+    except Exception as e:
+        return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
+
+@router.post("/prices/{price_id}/edit")
+async def edit_price(
+    request: Request,
+    price_id: int,
+    effective_from: str = Form(...),
+    cpu_price_per_core: float = Form(...),
+    ram_price_per_gb: float = Form(...),
+    nvme_price_per_gb: float = Form(...),
+    hdd_price_per_gb: float = Form(...)
+):
+    """Редактирование цен"""
+    data = {
+        "effective_from": effective_from,
+        "cpu_price_per_core": cpu_price_per_core,
+        "ram_price_per_gb": ram_price_per_gb,
+        "nvme_price_per_gb": nvme_price_per_gb,
+        "hdd_price_per_gb": hdd_price_per_gb
+    }
+    await api_request("PUT", f"/prices/{price_id}", json=data)
+    return RedirectResponse(url="/prices", status_code=303)
+
+@router.post("/prices/{price_id}/delete")
+async def delete_price(request: Request, price_id: int):
+    """Удаление цен"""
+    try:
+        await api_request("DELETE", f"/prices/{price_id}")
+        return RedirectResponse(url="/prices", status_code=303)
+    except HTTPException as e:
+        return templates.TemplateResponse("error.html", {"request": request, "error": str(e.detail)}, status_code=e.status_code)
+
 
 @router.get("/reports", response_class=HTMLResponse)
 async def reports_page(request: Request):
