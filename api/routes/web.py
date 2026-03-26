@@ -122,14 +122,34 @@ async def edit_client(request: Request, client_id: int, name: str = Form(...)):
 
 @router.post("/clients/{client_id}/delete")
 async def delete_client(request: Request, client_id: int):
-    await api_request("DELETE", f"/clients/{client_id}")
-    return RedirectResponse(url="/clients", status_code=303)
+    """Удаление клиента"""
+    try:
+        await api_request("DELETE", f"/clients/{client_id}")
+        return RedirectResponse(url="/clients", status_code=303)
+    except HTTPException as e:
+        if e.status_code == 400 and "Cannot delete client with existing servers" in str(e.detail):
+            return templates.TemplateResponse(
+                "error.html",
+                {"request": request, "error": "Нельзя удалить клиента, у которого есть серверы. Сначала удалите все серверы клиента."},
+                status_code=400
+            )
+        return templates.TemplateResponse("error.html", {"request": request, "error": str(e.detail)}, status_code=e.status_code)
 
 @router.get("/clients/{client_id}", response_class=HTMLResponse)
 async def client_detail(request: Request, client_id: int):
+    """Карточка клиента"""
     client = await api_request("GET", f"/clients/{client_id}")
     try:
         servers = await api_request("GET", f"/clients/{client_id}/servers")
+        
+        # Получаем имена хостов для серверов
+        try:
+            physical_servers = await api_request("GET", "/physical-servers/")
+            host_dict = {h["id"]: h["name"] for h in physical_servers}
+            for server in servers:
+                server["physical_server_name"] = host_dict.get(server.get("physical_server_id"))
+        except:
+            pass
     except:
         servers = []
     return templates.TemplateResponse("clients/detail.html", {"request": request, "client": client, "servers": servers})

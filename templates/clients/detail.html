@@ -25,6 +25,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Название</th>
+                                <th>Хост</th>
                                 <th>Статус</th>
                                 <th>CPU</th>
                                 <th>RAM (ГБ)</th>
@@ -36,6 +37,13 @@
                             <tr>
                                 <td>{{ server.id }}</td>
                                 <td><a href="/servers/{{ server.id }}">{{ server.name }}</a></td>
+                                <td>
+                                    {% if server.physical_server_name %}
+                                    <a href="/physical-servers/{{ server.physical_server_id }}">{{ server.physical_server_name }}</a>
+                                    {% else %}
+                                    <a href="/physical-servers/{{ server.physical_server_id }}">Хост #{{ server.physical_server_id }}</a>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <span class="badge bg-{% if server.status == 'active' %}success{% elif server.status == 'draft' %}secondary{% else %}danger{% endif %}">
                                         {{ server.status }}
@@ -49,7 +57,7 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="6" class="text-center">Нет серверов у этого клиента</td>
+                                <td colspan="7" class="text-center">Нет серверов у этого клиента</td>
                             </tr>
                             {% endfor %}
                         </tbody>
