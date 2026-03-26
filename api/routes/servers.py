@@ -58,6 +58,23 @@ def get_config_history(vm_id: int, db: MySQLConnection) -> List[ConfigHistoryEnt
 
 def get_server_dict(cursor, server_id: int) -> dict:
     """Get server as dictionary."""
+    # Используем dictionary=True для курсора, чтобы сразу получить словарь
+    if not hasattr(cursor, '_dictionary') or not cursor._dictionary:
+        # Если курсор не словарный, создаем временный словарный курсор
+        db = cursor._connection
+        dict_cursor = db.cursor(dictionary=True)
+        dict_cursor.execute("""
+            SELECT id, name, client_id, physical_server_id, status_id,
+                   purpose, os, cpu_cores, ram_gb,
+                   nvme1_gb, nvme2_gb, nvme3_gb, nvme4_gb, nvme5_gb, hdd_gb,
+                   ip_address, ip_port, domain_address, domain_port,
+                   start_date, stop_date, created_at, updated_at
+            FROM virtual_servers WHERE id = %s
+        """, (server_id,))
+        row = dict_cursor.fetchone()
+        dict_cursor.close()
+        return row
+    
     cursor.execute("""
         SELECT id, name, client_id, physical_server_id, status_id,
                purpose, os, cpu_cores, ram_gb,
@@ -70,7 +87,11 @@ def get_server_dict(cursor, server_id: int) -> dict:
     if not row:
         return None
     
-    # Convert tuple to dict with column names
+    # Если row уже словарь, возвращаем его
+    if isinstance(row, dict):
+        return row
+    
+    # Иначе преобразуем кортеж в словарь
     columns = [desc[0] for desc in cursor.description]
     return dict(zip(columns, row))
 
@@ -79,7 +100,94 @@ def get_status_code_by_id(cursor, status_id: int) -> str:
     """Get status code by ID."""
     cursor.execute("SELECT code FROM vm_statuses WHERE id = %s", (status_id,))
     row = cursor.fetchone()
-    return row[0] if row else None
+    if not row:
+        return None
+    # row может быть кортежем или словарём
+    if isinstance(row, dict):
+        return row.get('code')
+    return row[0]
+
+
+def calculate_daily_cost(db: MySQLConnection, server: dict) -> float:
+    """Calculate daily cost for a server based on current prices."""
+    # Debug print
+    print(f"DEBUG: server type: {type(server)}")
+    print(f"DEBUG: server keys: {server.keys() if hasattr(server, 'keys') else 'no keys'}")
+    
+    cursor = db.cursor(dictionary=True)
+    
+    # Get current prices
+    cursor.execute("""
+        SELECT cpu_price_per_core, ram_price_per_gb, nvme_price_per_gb, hdd_price_per_gb
+        FROM resource_prices 
+        WHERE effective_from <= CURDATE() 
+        ORDER BY effective_from DESC 
+        LIMIT 1
+    """)
+    prices = cursor.fetchone()
+    cursor.close()
+    
+    if not prices:
+        return 0.0
+    
+    # Convert Decimal to float
+    cpu_price = float(prices['cpu_price_per_core'])
+    ram_price = float(prices['ram_price_per_gb'])
+    nvme_price = float(prices['nvme_price_per_gb'])
+    hdd_price = float(prices['hdd_price_per_gb'])
+    
+    # Convert values to int/float
+    cpu_cores = int(server.get('cpu_cores', 0))
+    ram_gb = int(server.get('ram_gb', 0))
+    hdd_gb = int(server.get('hdd_gb', 0))
+    
+    # Calculate total NVMe
+    nvme_total = (int(server.get('nvme1_gb', 0)) + int(server.get('nvme2_gb', 0)) + 
+                  int(server.get('nvme3_gb', 0)) + int(server.get('nvme4_gb', 0)) + 
+                  int(server.get('nvme5_gb', 0)))
+    
+    cost = (cpu_cores * cpu_price +
+            ram_gb * ram_price +
+            nvme_total * nvme_price +
+            hdd_gb * hdd_price)
+    
+    return round(cost, 2)
+
+
+def build_server_response(cursor, row: dict, db: MySQLConnection) -> ServerResponse:
+    """Build ServerResponse with daily cost."""
+    status_code = get_status_code_by_id(cursor, row['status_id'])
+    
+    # Calculate daily cost
+    daily_cost = calculate_daily_cost(db, row)
+    
+    return ServerResponse(
+        id=row['id'],
+        name=row['name'],
+        client_id=row['client_id'],
+        physical_server_id=row['physical_server_id'],
+        status=status_code,
+        purpose=row['purpose'],
+        os=row['os'],
+        cpu_cores=row['cpu_cores'],
+        ram_gb=row['ram_gb'],
+        nvme1_gb=row['nvme1_gb'],
+        nvme2_gb=row['nvme2_gb'],
+        nvme3_gb=row['nvme3_gb'],
+        nvme4_gb=row['nvme4_gb'],
+        nvme5_gb=row['nvme5_gb'],
+        hdd_gb=row['hdd_gb'],
+        ip_address=row['ip_address'],
+        ip_port=row['ip_port'],
+        domain_address=row['domain_address'],
+        domain_port=row['domain_port'],
+        start_date=row['start_date'],
+        stop_date=row['stop_date'],
+        created_at=row['created_at'],
+        updated_at=row['updated_at'],
+        daily_cost=daily_cost,
+        config_history=get_config_history(row['id'], db)
+    )
 
 
 @router.get("/", response_model=List[ServerResponse])
@@ -112,83 +220,28 @@ async def get_servers(
     
     cursor.execute(query, params)
     rows = cursor.fetchall()
-    cursor.close()
     
     servers = []
     for row in rows:
-        # Get status code
-        status_code = get_status_code_by_id(db.cursor(), row['status_id'])
-        
-        server_response = ServerResponse(
-            id=row['id'],
-            name=row['name'],
-            client_id=row['client_id'],
-            physical_server_id=row['physical_server_id'],
-            status=status_code,
-            purpose=row['purpose'],
-            os=row['os'],
-            cpu_cores=row['cpu_cores'],
-            ram_gb=row['ram_gb'],
-            nvme1_gb=row['nvme1_gb'],
-            nvme2_gb=row['nvme2_gb'],
-            nvme3_gb=row['nvme3_gb'],
-            nvme4_gb=row['nvme4_gb'],
-            nvme5_gb=row['nvme5_gb'],
-            hdd_gb=row['hdd_gb'],
-            ip_address=row['ip_address'],
-            ip_port=row['ip_port'],
-            domain_address=row['domain_address'],
-            domain_port=row['domain_port'],
-            start_date=row['start_date'],
-            stop_date=row['stop_date'],
-            created_at=row['created_at'],
-            updated_at=row['updated_at'],
-            config_history=get_config_history(row['id'], db)
-        )
-        servers.append(server_response)
+        servers.append(build_server_response(cursor, row, db))
     
+    cursor.close()
     return servers
 
 
 @router.get("/{server_id}", response_model=ServerResponse)
 async def get_server(server_id: int, db: MySQLConnection = Depends(get_db)):
     """Get server by ID with config history."""
-    cursor = db.cursor()
+    cursor = db.cursor(dictionary=True)
     row = get_server_dict(cursor, server_id)
     
     if not row:
         cursor.close()
         raise HTTPException(status_code=404, detail="Server not found")
     
-    status_code = get_status_code_by_id(cursor, row['status_id'])
+    response = build_server_response(cursor, row, db)
     cursor.close()
-    
-    return ServerResponse(
-        id=row['id'],
-        name=row['name'],
-        client_id=row['client_id'],
-        physical_server_id=row['physical_server_id'],
-        status=status_code,
-        purpose=row['purpose'],
-        os=row['os'],
-        cpu_cores=row['cpu_cores'],
-        ram_gb=row['ram_gb'],
-        nvme1_gb=row['nvme1_gb'],
-        nvme2_gb=row['nvme2_gb'],
-        nvme3_gb=row['nvme3_gb'],
-        nvme4_gb=row['nvme4_gb'],
-        nvme5_gb=row['nvme5_gb'],
-        hdd_gb=row['hdd_gb'],
-        ip_address=row['ip_address'],
-        ip_port=row['ip_port'],
-        domain_address=row['domain_address'],
-        domain_port=row['domain_port'],
-        start_date=row['start_date'],
-        stop_date=row['stop_date'],
-        created_at=row['created_at'],
-        updated_at=row['updated_at'],
-        config_history=get_config_history(server_id, db)
-    )
+    return response
 
 
 @router.post("/", response_model=ServerResponse, status_code=201)
@@ -197,7 +250,7 @@ async def create_server(
     db: MySQLConnection = Depends(get_db)
 ):
     """Create a new server with draft status."""
-    cursor = db.cursor()
+    cursor = db.cursor(dictionary=True)
     
     # Check if client exists
     cursor.execute("SELECT id FROM clients WHERE id = %s", (server_data.client_id,))
@@ -242,35 +295,9 @@ async def create_server(
         
         # Fetch created server
         row = get_server_dict(cursor, server_id)
-        status_code = get_status_code_by_id(cursor, row['status_id'])
+        response = build_server_response(cursor, row, db)
         cursor.close()
-        
-        return ServerResponse(
-            id=row['id'],
-            name=row['name'],
-            client_id=row['client_id'],
-            physical_server_id=row['physical_server_id'],
-            status=status_code,
-            purpose=row['purpose'],
-            os=row['os'],
-            cpu_cores=row['cpu_cores'],
-            ram_gb=row['ram_gb'],
-            nvme1_gb=row['nvme1_gb'],
-            nvme2_gb=row['nvme2_gb'],
-            nvme3_gb=row['nvme3_gb'],
-            nvme4_gb=row['nvme4_gb'],
-            nvme5_gb=row['nvme5_gb'],
-            hdd_gb=row['hdd_gb'],
-            ip_address=row['ip_address'],
-            ip_port=row['ip_port'],
-            domain_address=row['domain_address'],
-            domain_port=row['domain_port'],
-            start_date=row['start_date'],
-            stop_date=row['stop_date'],
-            created_at=row['created_at'],
-            updated_at=row['updated_at'],
-            config_history=[]
-        )
+        return response
     except Exception as e:
         db.rollback()
         cursor.close()
@@ -284,7 +311,7 @@ async def update_server(
     db: MySQLConnection = Depends(get_db)
 ):
     """Update server configuration."""
-    cursor = db.cursor()
+    cursor = db.cursor(dictionary=True)
     
     # Check if server exists and get current status
     row = get_server_dict(cursor, server_id)
@@ -296,7 +323,6 @@ async def update_server(
     
     # If server is active and resources changed, create history entry
     if current_status_code == VMStatus.ACTIVE:
-        # Check if any resource fields changed
         resource_fields = ['cpu_cores', 'ram_gb', 'nvme1_gb', 'nvme2_gb', 
                           'nvme3_gb', 'nvme4_gb', 'nvme5_gb', 'hdd_gb']
         changed = False
@@ -307,7 +333,6 @@ async def update_server(
                 break
         
         if changed:
-            # Create history entry
             history_cursor = db.cursor()
             history_cursor.execute("""
                 INSERT INTO vm_config_history 
@@ -339,35 +364,9 @@ async def update_server(
     
     # Fetch updated server
     row = get_server_dict(cursor, server_id)
-    status_code = get_status_code_by_id(cursor, row['status_id'])
+    response = build_server_response(cursor, row, db)
     cursor.close()
-    
-    return ServerResponse(
-        id=row['id'],
-        name=row['name'],
-        client_id=row['client_id'],
-        physical_server_id=row['physical_server_id'],
-        status=status_code,
-        purpose=row['purpose'],
-        os=row['os'],
-        cpu_cores=row['cpu_cores'],
-        ram_gb=row['ram_gb'],
-        nvme1_gb=row['nvme1_gb'],
-        nvme2_gb=row['nvme2_gb'],
-        nvme3_gb=row['nvme3_gb'],
-        nvme4_gb=row['nvme4_gb'],
-        nvme5_gb=row['nvme5_gb'],
-        hdd_gb=row['hdd_gb'],
-        ip_address=row['ip_address'],
-        ip_port=row['ip_port'],
-        domain_address=row['domain_address'],
-        domain_port=row['domain_port'],
-        start_date=row['start_date'],
-        stop_date=row['stop_date'],
-        created_at=row['created_at'],
-        updated_at=row['updated_at'],
-        config_history=get_config_history(server_id, db)
-    )
+    return response
 
 
 @router.delete("/{server_id}", status_code=204)
@@ -375,7 +374,6 @@ async def delete_server(server_id: int, db: MySQLConnection = Depends(get_db)):
     """Delete server by ID."""
     cursor = db.cursor()
     
-    # Check if server exists
     cursor.execute("SELECT id FROM virtual_servers WHERE id = %s", (server_id,))
     if not cursor.fetchone():
         cursor.close()
@@ -396,9 +394,8 @@ async def delete_server(server_id: int, db: MySQLConnection = Depends(get_db)):
 @router.post("/{server_id}/activate", response_model=ServerResponse)
 async def activate_server(server_id: int, db: MySQLConnection = Depends(get_db)):
     """Activate server. Sets status to active and start_date to today."""
-    cursor = db.cursor()
+    cursor = db.cursor(dictionary=True)
     
-    # Check if server exists and get current status
     row = get_server_dict(cursor, server_id)
     if not row:
         cursor.close()
@@ -410,7 +407,6 @@ async def activate_server(server_id: int, db: MySQLConnection = Depends(get_db))
         cursor.close()
         raise HTTPException(status_code=400, detail="Server is already active")
     
-    # Get active status ID
     active_status_id = get_status_id(db, VMStatus.ACTIVE)
     
     try:
@@ -425,45 +421,17 @@ async def activate_server(server_id: int, db: MySQLConnection = Depends(get_db))
         cursor.close()
         raise HTTPException(status_code=500, detail=str(e))
     
-    # Fetch updated server
     row = get_server_dict(cursor, server_id)
-    status_code = get_status_code_by_id(cursor, row['status_id'])
+    response = build_server_response(cursor, row, db)
     cursor.close()
-    
-    return ServerResponse(
-        id=row['id'],
-        name=row['name'],
-        client_id=row['client_id'],
-        physical_server_id=row['physical_server_id'],
-        status=status_code,
-        purpose=row['purpose'],
-        os=row['os'],
-        cpu_cores=row['cpu_cores'],
-        ram_gb=row['ram_gb'],
-        nvme1_gb=row['nvme1_gb'],
-        nvme2_gb=row['nvme2_gb'],
-        nvme3_gb=row['nvme3_gb'],
-        nvme4_gb=row['nvme4_gb'],
-        nvme5_gb=row['nvme5_gb'],
-        hdd_gb=row['hdd_gb'],
-        ip_address=row['ip_address'],
-        ip_port=row['ip_port'],
-        domain_address=row['domain_address'],
-        domain_port=row['domain_port'],
-        start_date=row['start_date'],
-        stop_date=row['stop_date'],
-        created_at=row['created_at'],
-        updated_at=row['updated_at'],
-        config_history=get_config_history(server_id, db)
-    )
+    return response
 
 
 @router.post("/{server_id}/deactivate", response_model=ServerResponse)
 async def deactivate_server(server_id: int, db: MySQLConnection = Depends(get_db)):
     """Deactivate server. Sets status to deleted and stop_date to today."""
-    cursor = db.cursor()
+    cursor = db.cursor(dictionary=True)
     
-    # Check if server exists and get current status
     row = get_server_dict(cursor, server_id)
     if not row:
         cursor.close()
@@ -475,7 +443,6 @@ async def deactivate_server(server_id: int, db: MySQLConnection = Depends(get_db
         cursor.close()
         raise HTTPException(status_code=400, detail="Server is already deleted")
     
-    # Get deleted status ID
     deleted_status_id = get_status_id(db, VMStatus.DELETED)
     
     try:
@@ -490,34 +457,7 @@ async def deactivate_server(server_id: int, db: MySQLConnection = Depends(get_db
         cursor.close()
         raise HTTPException(status_code=500, detail=str(e))
     
-    # Fetch updated server
     row = get_server_dict(cursor, server_id)
-    status_code = get_status_code_by_id(cursor, row['status_id'])
+    response = build_server_response(cursor, row, db)
     cursor.close()
-    
-    return ServerResponse(
-        id=row['id'],
-        name=row['name'],
-        client_id=row['client_id'],
-        physical_server_id=row['physical_server_id'],
-        status=status_code,
-        purpose=row['purpose'],
-        os=row['os'],
-        cpu_cores=row['cpu_cores'],
-        ram_gb=row['ram_gb'],
-        nvme1_gb=row['nvme1_gb'],
-        nvme2_gb=row['nvme2_gb'],
-        nvme3_gb=row['nvme3_gb'],
-        nvme4_gb=row['nvme4_gb'],
-        nvme5_gb=row['nvme5_gb'],
-        hdd_gb=row['hdd_gb'],
-        ip_address=row['ip_address'],
-        ip_port=row['ip_port'],
-        domain_address=row['domain_address'],
-        domain_port=row['domain_port'],
-        start_date=row['start_date'],
-        stop_date=row['stop_date'],
-        created_at=row['created_at'],
-        updated_at=row['updated_at'],
-        config_history=get_config_history(server_id, db)
-    )
+    return response

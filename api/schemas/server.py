@@ -89,6 +89,7 @@ class ServerResponse(BaseModel):
     stop_date: date | None
     created_at: datetime
     updated_at: datetime
+    daily_cost: float | None = None
     config_history: list[ConfigHistoryEntry] = []
 
     model_config = ConfigDict(from_attributes=True)
