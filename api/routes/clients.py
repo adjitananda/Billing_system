@@ -63,7 +63,6 @@ async def create_client(
         db.commit()
         client_id = cursor.lastrowid
         
-        # Fetch created client
         cursor.execute("SELECT id, name, created_at, updated_at FROM clients WHERE id = %s", (client_id,))
         row = cursor.fetchone()
         cursor.close()
@@ -89,7 +88,6 @@ async def update_client(
     """Update client by ID."""
     cursor = db.cursor()
     
-    # Check if client exists
     cursor.execute("SELECT id, name, created_at, updated_at FROM clients WHERE id = %s", (client_id,))
     row = cursor.fetchone()
     
@@ -97,7 +95,6 @@ async def update_client(
         cursor.close()
         raise HTTPException(status_code=404, detail="Client not found")
     
-    # Update only if name provided
     if client_data.name is not None:
         try:
             cursor.execute("UPDATE clients SET name = %s WHERE id = %s", (client_data.name, client_id))
@@ -107,7 +104,6 @@ async def update_client(
             cursor.close()
             raise HTTPException(status_code=500, detail=str(e))
     
-    # Fetch updated client
     cursor.execute("SELECT id, name, created_at, updated_at FROM clients WHERE id = %s", (client_id,))
     row = cursor.fetchone()
     cursor.close()
@@ -125,13 +121,11 @@ async def delete_client(client_id: int, db: MySQLConnection = Depends(get_db)):
     """Delete client by ID (only if no servers exist)."""
     cursor = db.cursor()
     
-    # Check if client exists
     cursor.execute("SELECT id FROM clients WHERE id = %s", (client_id,))
     if not cursor.fetchone():
         cursor.close()
         raise HTTPException(status_code=404, detail="Client not found")
     
-    # Check if client has any servers
     cursor.execute("SELECT COUNT(*) FROM virtual_servers WHERE client_id = %s", (client_id,))
     count = cursor.fetchone()[0]
     
@@ -142,7 +136,6 @@ async def delete_client(client_id: int, db: MySQLConnection = Depends(get_db)):
             detail="Cannot delete client with existing servers"
         )
     
-    # Delete client
     try:
         cursor.execute("DELETE FROM clients WHERE id = %s", (client_id,))
         db.commit()
@@ -153,3 +146,44 @@ async def delete_client(client_id: int, db: MySQLConnection = Depends(get_db)):
     
     cursor.close()
     return None
+
+
+@router.get("/{client_id}/servers", response_model=List)
+async def get_client_servers(
+    client_id: int,
+    db: MySQLConnection = Depends(get_db)
+):
+    """Get all servers for a specific client."""
+    cursor = db.cursor(dictionary=True)
+    
+    # Check if client exists
+    cursor.execute("SELECT id FROM clients WHERE id = %s", (client_id,))
+    if not cursor.fetchone():
+        cursor.close()
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    # Get all servers for this client
+    cursor.execute("""
+        SELECT vs.*, 
+               ps.name as physical_server_name
+        FROM virtual_servers vs
+        LEFT JOIN physical_servers ps ON vs.physical_server_id = ps.id
+        WHERE vs.client_id = %s
+        ORDER BY vs.id
+    """, (client_id,))
+    
+    rows = cursor.fetchall()
+    cursor.close()
+    
+    # Convert datetime objects to string for JSON serialization
+    for row in rows:
+        if row.get('created_at'):
+            row['created_at'] = row['created_at'].isoformat()
+        if row.get('updated_at'):
+            row['updated_at'] = row['updated_at'].isoformat()
+        if row.get('start_date'):
+            row['start_date'] = row['start_date'].isoformat() if row['start_date'] else None
+        if row.get('stop_date'):
+            row['stop_date'] = row['stop_date'].isoformat() if row['stop_date'] else None
+    
+    return rows
