@@ -1,30 +1,22 @@
-"""
-Pydantic schemas for Price endpoints.
-"""
-
+from pydantic import BaseModel, Field
 from datetime import date, datetime
-from decimal import Decimal
-from pydantic import BaseModel, ConfigDict
+from typing import Optional
+
+class PriceBase(BaseModel):
+    effective_from: date = Field(..., description="Дата начала действия цен")
+    cpu_price_per_core: float = Field(..., description="Цена за ядро CPU в день", ge=0)
+    ram_price_per_gb: float = Field(..., description="Цена за ГБ RAM в день", ge=0)
+    nvme_price_per_gb: float = Field(..., description="Цена за ГБ NVMe в день", ge=0)
+    hdd_price_per_gb: float = Field(..., description="Цена за ГБ HDD в день", ge=0)
 
 
-class PriceCreate(BaseModel):
-    """Schema for creating a new price record."""
-    effective_from: date
-    cpu_price_per_core: Decimal
-    ram_price_per_gb: Decimal
-    nvme_price_per_gb: Decimal
-    hdd_price_per_gb: Decimal
+class PriceCreate(PriceBase):
+    pass
 
 
-class PriceResponse(BaseModel):
-    """Schema for price response."""
+class PriceResponse(PriceBase):
     id: int
-    effective_from: date
-    cpu_price_per_core: Decimal
-    ram_price_per_gb: Decimal
-    nvme_price_per_gb: Decimal
-    hdd_price_per_gb: Decimal
     created_at: datetime
-    updated_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
+    
+    class Config:
+        from_attributes = True

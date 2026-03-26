@@ -241,6 +241,21 @@ async def create_server(
 @router.get("/servers/{server_id}", response_class=HTMLResponse)
 async def server_detail(request: Request, server_id: int):
     server = await api_request("GET", f"/servers/{server_id}")
+    
+    # Получаем имя клиента
+    try:
+        client = await api_request("GET", f"/clients/{server.get('client_id')}")
+        server["client_name"] = client.get("name")
+    except:
+        server["client_name"] = None
+    
+    # Получаем имя хоста
+    try:
+        physical_server = await api_request("GET", f"/physical-servers/{server.get('physical_server_id')}")
+        server["physical_server_name"] = physical_server.get("name")
+    except:
+        server["physical_server_name"] = None
+    
     return templates.TemplateResponse("servers/detail.html", {"request": request, "server": server})
 
 @router.get("/servers/{server_id}/edit", response_class=HTMLResponse)

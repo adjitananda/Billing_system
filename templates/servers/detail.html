@@ -29,9 +29,29 @@
                 <table class="table table-sm">
                     <tr><th>ID:</th><td>{{ server.id }}</td></tr>
                     <tr><th>Название:</th><td>{{ server.name }}</td></tr>
-                    <tr><th>Клиент:</th><td><a href="/clients/{{ server.client_id }}">{{ server.client_name or server.client_id }}</a></td></tr>
-                    <tr><th>Физический сервер:</th><td><a href="/physical-servers/{{ server.physical_server_id }}">{{ server.physical_server_name or server.physical_server_id }}</a></td></tr>
-                    <tr><th>Статус:</th><td><span class="badge bg-{% if server.status == 'active' %}success{% elif server.status == 'draft' %}secondary{% else %}danger{% endif %}">{{ server.status }}</span></td></tr>
+                    <tr><th>Клиент:</th>
+                        <td>
+                            {% if server.client_name %}
+                            <a href="/clients/{{ server.client_id }}">{{ server.client_name }}</a>
+                            {% else %}
+                            <a href="/clients/{{ server.client_id }}">Клиент #{{ server.client_id }}</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr><th>Физический сервер:</th>
+                        <td>
+                            {% if server.physical_server_name %}
+                            <a href="/physical-servers/{{ server.physical_server_id }}">{{ server.physical_server_name }}</a>
+                            {% else %}
+                            <a href="/physical-servers/{{ server.physical_server_id }}">Хост #{{ server.physical_server_id }}</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr><th>Статус:</th>
+                        <td><span class="badge bg-{% if server.status == 'active' %}success{% elif server.status == 'draft' %}secondary{% else %}danger{% endif %}">
+                            {% if server.status == 'active' %}Активен{% elif server.status == 'draft' %}Черновик{% else %}Удалён{% endif %}
+                        </span></td>
+                    </tr>
                     <tr><th>Назначение:</th><td>{{ server.purpose or "—" }}</td></tr>
                     <tr><th>ОС:</th><td>{{ server.os or "—" }}</td></tr>
                     <tr><th>Создан:</th><td>{{ server.created_at or "—" }}</td></tr>
@@ -48,7 +68,7 @@
                 <table class="table table-sm">
                     <tr><th>CPU:</th><td>{{ server.cpu_cores }} ядер</td></tr>
                     <tr><th>RAM:</th><td>{{ server.ram_gb }} ГБ</td></tr>
-                    <tr><th>HDD:</th><td>{{ server.hdd_gb }} ГБ</td></tr>
+                    <tr><th>HDD:</th><td>{% if server.hdd_gb > 0 %}{{ server.hdd_gb }} ГБ{% else %}—{% endif %}</td></tr>
                     <tr><th>NVMe диски:</th>
                         <td>
                             {% if server.nvme1_gb > 0 %}NVMe1: {{ server.nvme1_gb }} ГБ<br>{% endif %}

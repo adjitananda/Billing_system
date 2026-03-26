@@ -28,7 +28,9 @@
                                 <th>Хост</th>
                                 <th>Статус</th>
                                 <th>CPU</th>
-                                <th>RAM (ГБ)</th>
+                                <th>RAM</th>
+                                <th>HDD</th>
+                                <th>NVMe</th>
                                 <th>Действия</th>
                             </tr>
                         </thead>
@@ -46,18 +48,24 @@
                                 </td>
                                 <td>
                                     <span class="badge bg-{% if server.status == 'active' %}success{% elif server.status == 'draft' %}secondary{% else %}danger{% endif %}">
-                                        {{ server.status }}
+                                        {% if server.status == 'active' %}Активен{% elif server.status == 'draft' %}Черновик{% else %}Удалён{% endif %}
                                     </span>
                                 </td>
-                                <td>{{ server.cpu_cores }}</td>
-                                <td>{{ server.ram_gb }}</td>
+                                <td>{{ server.cpu_cores }} ядер</td>
+                                <td>{{ server.ram_gb }} ГБ</td>
+                                <td>{% if server.hdd_gb > 0 %}{{ server.hdd_gb }} ГБ{% else %}—{% endif %}</td>
+                                <td>
+                                    {% set nvme_total = (server.nvme1_gb or 0) + (server.nvme2_gb or 0) + (server.nvme3_gb or 0) + (server.nvme4_gb or 0) + (server.nvme5_gb or 0) %}
+                                    {% if nvme_total > 0 %}{{ nvme_total }} ГБ{% else %}—{% endif %}
+                                </td>
                                 <td>
                                     <a href="/servers/{{ server.id }}" class="btn btn-sm btn-info">Просмотр</a>
+                                    <a href="/servers/{{ server.id }}/edit" class="btn btn-sm btn-warning">Ред.</a>
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="7" class="text-center">Нет серверов у этого клиента</td>
+                                <td colspan="9" class="text-center">Нет серверов у этого клиента</td>
                             </tr>
                             {% endfor %}
                         </tbody>
