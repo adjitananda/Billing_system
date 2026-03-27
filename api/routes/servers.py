@@ -58,9 +58,7 @@ def get_config_history(vm_id: int, db: MySQLConnection) -> List[ConfigHistoryEnt
 
 def get_server_dict(cursor, server_id: int) -> dict:
     """Get server as dictionary."""
-    # Используем dictionary=True для курсора, чтобы сразу получить словарь
     if not hasattr(cursor, '_dictionary') or not cursor._dictionary:
-        # Если курсор не словарный, создаем временный словарный курсор
         db = cursor._connection
         dict_cursor = db.cursor(dictionary=True)
         dict_cursor.execute("""
@@ -87,11 +85,9 @@ def get_server_dict(cursor, server_id: int) -> dict:
     if not row:
         return None
     
-    # Если row уже словарь, возвращаем его
     if isinstance(row, dict):
         return row
     
-    # Иначе преобразуем кортеж в словарь
     columns = [desc[0] for desc in cursor.description]
     return dict(zip(columns, row))
 
@@ -102,7 +98,6 @@ def get_status_code_by_id(cursor, status_id: int) -> str:
     row = cursor.fetchone()
     if not row:
         return None
-    # row может быть кортежем или словарём
     if isinstance(row, dict):
         return row.get('code')
     return row[0]
@@ -110,13 +105,8 @@ def get_status_code_by_id(cursor, status_id: int) -> str:
 
 def calculate_daily_cost(db: MySQLConnection, server: dict) -> float:
     """Calculate daily cost for a server based on current prices."""
-    # Debug print
-    print(f"DEBUG: server type: {type(server)}")
-    print(f"DEBUG: server keys: {server.keys() if hasattr(server, 'keys') else 'no keys'}")
-    
     cursor = db.cursor(dictionary=True)
     
-    # Get current prices
     cursor.execute("""
         SELECT cpu_price_per_core, ram_price_per_gb, nvme_price_per_gb, hdd_price_per_gb
         FROM resource_prices 
@@ -130,18 +120,15 @@ def calculate_daily_cost(db: MySQLConnection, server: dict) -> float:
     if not prices:
         return 0.0
     
-    # Convert Decimal to float
     cpu_price = float(prices['cpu_price_per_core'])
     ram_price = float(prices['ram_price_per_gb'])
     nvme_price = float(prices['nvme_price_per_gb'])
     hdd_price = float(prices['hdd_price_per_gb'])
     
-    # Convert values to int/float
     cpu_cores = int(server.get('cpu_cores', 0))
     ram_gb = int(server.get('ram_gb', 0))
     hdd_gb = int(server.get('hdd_gb', 0))
     
-    # Calculate total NVMe
     nvme_total = (int(server.get('nvme1_gb', 0)) + int(server.get('nvme2_gb', 0)) + 
                   int(server.get('nvme3_gb', 0)) + int(server.get('nvme4_gb', 0)) + 
                   int(server.get('nvme5_gb', 0)))
@@ -158,7 +145,6 @@ def build_server_response(cursor, row: dict, db: MySQLConnection) -> ServerRespo
     """Build ServerResponse with daily cost."""
     status_code = get_status_code_by_id(cursor, row['status_id'])
     
-    # Calculate daily cost
     daily_cost = calculate_daily_cost(db, row)
     
     return ServerResponse(
@@ -252,22 +238,18 @@ async def create_server(
     """Create a new server with draft status."""
     cursor = db.cursor(dictionary=True)
     
-    # Check if client exists
     cursor.execute("SELECT id FROM clients WHERE id = %s", (server_data.client_id,))
     if not cursor.fetchone():
         cursor.close()
         raise HTTPException(status_code=404, detail="Client not found")
     
-    # Check if physical server exists
     cursor.execute("SELECT id FROM physical_servers WHERE id = %s", (server_data.physical_server_id,))
     if not cursor.fetchone():
         cursor.close()
         raise HTTPException(status_code=404, detail="Physical server not found")
     
-    # Get draft status ID
     draft_status_id = get_status_id(db, VMStatus.DRAFT)
     
-    # Prepare data for creation
     server_dict = {
         'name': server_data.name,
         'client_id': server_data.client_id,
@@ -293,7 +275,6 @@ async def create_server(
         server_id = VirtualServer.create(cursor, **server_dict)
         db.commit()
         
-        # Fetch created server
         row = get_server_dict(cursor, server_id)
         response = build_server_response(cursor, row, db)
         cursor.close()
@@ -313,7 +294,6 @@ async def update_server(
     """Update server configuration."""
     cursor = db.cursor(dictionary=True)
     
-    # Check if server exists and get current status
     row = get_server_dict(cursor, server_id)
     if not row:
         cursor.close()
@@ -321,7 +301,6 @@ async def update_server(
     
     current_status_code = get_status_code_by_id(cursor, row['status_id'])
     
-    # If server is active and resources changed, create history entry
     if current_status_code == VMStatus.ACTIVE:
         resource_fields = ['cpu_cores', 'ram_gb', 'nvme1_gb', 'nvme2_gb', 
                           'nvme3_gb', 'nvme4_gb', 'nvme5_gb', 'hdd_gb']
@@ -344,13 +323,12 @@ async def update_server(
                   row['nvme5_gb'], row['hdd_gb']))
             history_cursor.close()
     
-    # Build update query dynamically
     update_fields = []
     values = []
     
     for field in ['name', 'purpose', 'os', 'cpu_cores', 'ram_gb',
                   'nvme1_gb', 'nvme2_gb', 'nvme3_gb', 'nvme4_gb', 'nvme5_gb', 'hdd_gb',
-                  'ip_address', 'ip_port', 'domain_address', 'domain_port']:
+                  'ip_address', 'ip_port', 'domain_address', 'domain_port', 'physical_server_id']:
         new_val = getattr(server_data, field, None)
         if new_val is not None:
             update_fields.append(f"{field} = %s")
@@ -362,7 +340,6 @@ async def update_server(
         cursor.execute(query, values)
         db.commit()
     
-    # Fetch updated server
     row = get_server_dict(cursor, server_id)
     response = build_server_response(cursor, row, db)
     cursor.close()

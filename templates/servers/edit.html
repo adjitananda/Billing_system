@@ -10,10 +10,17 @@
                 <h3>Редактировать сервер: {{ server.name }}</h3>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" id="editForm">
                     <div class="mb-3">
                         <label for="name" class="form-label">Название сервера</label>
                         <input type="text" class="form-control" id="name" name="name" value="{{ server.name }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="physical_server_id" class="form-label">Физический сервер (хост)</label>
+                        <select class="form-select" id="physical_server_id" name="physical_server_id" required>
+                            <option value="">Загрузка...</option>
+                        </select>
                     </div>
                     
                     <div class="mb-3">
@@ -82,4 +89,36 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Загружаем список хостов при загрузке страницы
+    async function loadPhysicalServers() {
+        const select = document.getElementById('physical_server_id');
+        try {
+            const response = await fetch('/api/v1/physical-servers/');
+            const servers = await response.json();
+            
+            select.innerHTML = '';
+            for (const server of servers) {
+                const option = document.createElement('option');
+                option.value = server.id;
+                option.textContent = `${server.name} (${server.total_cores} ядер, ${server.total_ram_gb} ГБ RAM)`;
+                if (server.id === {{ server.physical_server_id }}) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            }
+            
+            if (select.options.length === 0) {
+                select.innerHTML = '<option value="">Нет доступных хостов</option>';
+                select.disabled = true;
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки хостов:', error);
+            select.innerHTML = '<option value="">Ошибка загрузки</option>';
+        }
+    }
+    
+    loadPhysicalServers();
+</script>
 {% endblock %}

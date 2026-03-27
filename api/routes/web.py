@@ -77,6 +77,7 @@ async def dashboard(request: Request):
         })
     except Exception as e:
         return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
+
 @router.get("/clients", response_class=HTMLResponse)
 async def list_clients(request: Request, search: str = ""):
     try:
@@ -272,6 +273,7 @@ async def edit_server(
     request: Request,
     server_id: int,
     name: str = Form(...),
+    physical_server_id: int = Form(...),
     purpose: str = Form(...),
     os: str = Form(...),
     cpu_cores: int = Form(...),
@@ -286,6 +288,7 @@ async def edit_server(
     """Редактирование сервера"""
     data = {
         "name": name,
+        "physical_server_id": physical_server_id,
         "purpose": purpose,
         "os": os,
         "cpu_cores": cpu_cores,
@@ -375,8 +378,6 @@ async def list_prices(request: Request):
         })
     except Exception as e:
         return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
-    except Exception as e:
-        return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
 
 @router.get("/prices/create", response_class=HTMLResponse)
 async def create_price_form(request: Request):
@@ -407,13 +408,8 @@ async def create_price(
 async def edit_price_form(request: Request, price_id: int):
     """Форма редактирования цен"""
     try:
-        # Получаем цену по ID через API
         price = await api_request("GET", f"/prices/by-id/{price_id}")
         return templates.TemplateResponse("prices/edit.html", {"request": request, "price": price})
-    except Exception as e:
-        return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
-    except Exception as e:
-        return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
     except Exception as e:
         return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
 

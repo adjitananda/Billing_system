@@ -30,6 +30,7 @@ class ServerCreate(BaseModel):
 
 
 class ServerUpdate(BaseModel):
+    physical_server_id: int | None = None
     """Schema for updating a server."""
     name: str | None = None
     purpose: str | None = None
