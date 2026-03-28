@@ -270,57 +270,51 @@ async def get_datacenter_report(
         target_date = date_param or date.today()
         
         cursor.execute("""
-            SELECT 
-                SUM(cpu_cores) as used_cores,
-                SUM(ram_gb) as used_ram,
-                SUM(nvme1_gb + nvme2_gb + nvme3_gb + nvme4_gb + nvme5_gb) as used_nvme,
-                SUM(hdd_gb) as used_hdd
-            FROM daily_billing
-            WHERE billing_date = %s
-        """, (target_date,))
-        
-        used_resources = cursor.fetchone() or {}
-        
-        cursor.execute("""
             SELECT id, name, total_cores, total_ram_gb, total_nvme_gb, total_sata_gb
             FROM physical_servers
         """)
-        
         physical_servers = cursor.fetchall()
         
         if not physical_servers:
             return DatacenterReport(
                 date=target_date,
                 physical_servers=[],
-                total_usage=UsagePercent(
-                    cores=0,
-                    ram_gb=0,
-                    nvme_gb=0,
-                    sata_gb=0
-                )
+                total_usage=UsagePercent(cores=0, ram_gb=0, nvme_gb=0, sata_gb=0)
             )
         
-        total_resources = {
-            'cores': sum(ps['total_cores'] for ps in physical_servers),
-            'ram_gb': sum(ps['total_ram_gb'] for ps in physical_servers),
-            'nvme_gb': sum(ps['total_nvme_gb'] for ps in physical_servers),
-            'sata_gb': sum(ps['total_sata_gb'] for ps in physical_servers)
-        }
-        
-        used = {
-            'cores': used_resources.get('used_cores', 0) or 0,
-            'ram_gb': used_resources.get('used_ram', 0) or 0,
-            'nvme_gb': used_resources.get('used_nvme', 0) or 0,
-            'sata_gb': used_resources.get('used_hdd', 0) or 0
-        }
-        
         physical_servers_list = []
+        total_cores = 0
+        total_ram = 0
+        total_nvme = 0
+        total_sata = 0
+        used_cores_total = 0
+        used_ram_total = 0
+        used_nvme_total = 0
+        used_sata_total = 0
         
         for ps in physical_servers:
-            cores_percent = (used['cores'] / total_resources['cores'] * 100) if total_resources['cores'] > 0 else 0
-            ram_percent = (used['ram_gb'] / total_resources['ram_gb'] * 100) if total_resources['ram_gb'] > 0 else 0
-            nvme_percent = (used['nvme_gb'] / total_resources['nvme_gb'] * 100) if total_resources['nvme_gb'] > 0 else 0
-            sata_percent = (used['sata_gb'] / total_resources['sata_gb'] * 100) if total_resources['sata_gb'] > 0 else 0
+            cursor.execute("""
+                SELECT 
+                    SUM(cpu_cores) as used_cores,
+                    SUM(ram_gb) as used_ram,
+                    SUM(nvme1_gb + nvme2_gb + nvme3_gb + nvme4_gb + nvme5_gb) as used_nvme,
+                    SUM(hdd_gb) as used_sata
+                FROM virtual_servers
+                WHERE physical_server_id = %s 
+                  AND (stop_date IS NULL OR stop_date > %s)
+                  AND start_date <= %s
+            """, (ps['id'], target_date, target_date))
+            
+            used = cursor.fetchone() or {}
+            used_cores = used.get('used_cores', 0) or 0
+            used_ram = used.get('used_ram', 0) or 0
+            used_nvme = used.get('used_nvme', 0) or 0
+            used_sata = used.get('used_sata', 0) or 0
+            
+            cores_percent = (used_cores / ps['total_cores'] * 100) if ps['total_cores'] > 0 else 0
+            ram_percent = (used_ram / ps['total_ram_gb'] * 100) if ps['total_ram_gb'] > 0 else 0
+            nvme_percent = (used_nvme / ps['total_nvme_gb'] * 100) if ps['total_nvme_gb'] > 0 else 0
+            sata_percent = (used_sata / ps['total_sata_gb'] * 100) if ps['total_sata_gb'] > 0 else 0
             
             physical_servers_list.append(
                 PhysicalServerUsage(
@@ -333,10 +327,10 @@ async def get_datacenter_report(
                         sata_gb=ps['total_sata_gb']
                     ),
                     used=PhysicalServerResources(
-                        cores=int(ps['total_cores'] * cores_percent / 100),
-                        ram_gb=int(ps['total_ram_gb'] * ram_percent / 100),
-                        nvme_gb=int(ps['total_nvme_gb'] * nvme_percent / 100),
-                        sata_gb=int(ps['total_sata_gb'] * sata_percent / 100)
+                        cores=used_cores,
+                        ram_gb=used_ram,
+                        nvme_gb=used_nvme,
+                        sata_gb=used_sata
                     ),
                     usage_percent=UsagePercent(
                         cores=round(cores_percent, 1),
@@ -346,12 +340,21 @@ async def get_datacenter_report(
                     )
                 )
             )
+            
+            total_cores += ps['total_cores']
+            total_ram += ps['total_ram_gb']
+            total_nvme += ps['total_nvme_gb']
+            total_sata += ps['total_sata_gb']
+            used_cores_total += used_cores
+            used_ram_total += used_ram
+            used_nvme_total += used_nvme
+            used_sata_total += used_sata
         
         total_usage = UsagePercent(
-            cores=round((used['cores'] / total_resources['cores'] * 100), 1) if total_resources['cores'] > 0 else 0,
-            ram_gb=round((used['ram_gb'] / total_resources['ram_gb'] * 100), 1) if total_resources['ram_gb'] > 0 else 0,
-            nvme_gb=round((used['nvme_gb'] / total_resources['nvme_gb'] * 100), 1) if total_resources['nvme_gb'] > 0 else 0,
-            sata_gb=round((used['sata_gb'] / total_resources['sata_gb'] * 100), 1) if total_resources['sata_gb'] > 0 else 0
+            cores=round((used_cores_total / total_cores * 100), 1) if total_cores > 0 else 0,
+            ram_gb=round((used_ram_total / total_ram * 100), 1) if total_ram > 0 else 0,
+            nvme_gb=round((used_nvme_total / total_nvme * 100), 1) if total_nvme > 0 else 0,
+            sata_gb=round((used_sata_total / total_sata * 100), 1) if total_sata > 0 else 0
         )
         
         return DatacenterReport(
@@ -363,6 +366,7 @@ async def get_datacenter_report(
     finally:
         cursor.close()
         conn.close()
+
 
 
 @router.get("/server/{server_id}", response_model=ServerHistoryReport)
