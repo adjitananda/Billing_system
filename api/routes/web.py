@@ -264,6 +264,11 @@ async def edit_server_form(request: Request, server_id: int):
     """Форма редактирования сервера"""
     try:
         server = await api_request("GET", f"/servers/{server_id}")
+        try:
+            physical_servers = await api_request("GET", "/physical-servers/")
+        except:
+            physical_servers = []
+        return templates.TemplateResponse("servers/edit.html", {"request": request, "server": server, "physical_servers": physical_servers})
         return templates.TemplateResponse("servers/edit.html", {"request": request, "server": server})
     except Exception as e:
         return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
@@ -274,7 +279,7 @@ async def edit_server(
     server_id: int,
     name: str = Form(...),
     physical_server_id: int = Form(...),
-    purpose: str = Form(...),
+    purpose: str = Form(...), ip_address: str = Form(""),
     os: str = Form(...),
     cpu_cores: int = Form(...),
     ram_gb: int = Form(...),
@@ -289,7 +294,7 @@ async def edit_server(
     data = {
         "name": name,
         "physical_server_id": physical_server_id,
-        "purpose": purpose,
+        "purpose": purpose, "ip_address": ip_address,
         "os": os,
         "cpu_cores": cpu_cores,
         "ram_gb": ram_gb,

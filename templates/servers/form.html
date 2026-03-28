@@ -42,23 +42,17 @@
                     
                     <div class="mb-3">
                         <label for="purpose" class="form-label">Назначение</label>
-                        <select class="form-select" id="purpose" name="purpose" required>
-                            <option value="web">Web-сервер</option>
-                            <option value="database">База данных</option>
-                            <option value="app">Приложение</option>
-                            <option value="other">Другое</option>
-                        </select>
+                        <input type="text" class="form-control" id="purpose" name="purpose" value="{{ server.purpose if server else '' }}" placeholder="Например: Web-сервер, База данных, Приложение">
                     </div>
                     
                     <div class="mb-3">
                         <label for="os" class="form-label">Операционная система</label>
-                        <select class="form-select" id="os" name="os" required>
-                            <option value="ubuntu22">Ubuntu 22.04</option>
-                            <option value="ubuntu20">Ubuntu 20.04</option>
-                            <option value="debian12">Debian 12</option>
-                            <option value="centos7">CentOS 7</option>
-                            <option value="rocky9">Rocky Linux 9</option>
-                        </select>
+                        <input type="text" class="form-control" id="os" name="os" value="{{ server.os if server else '' }}" placeholder="Например: Ubuntu 22.04, Windows Server 2022, Debian 12">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="ip_address" class="form-label">IP-адрес (с портом)</label>
+                        <input type="text" class="form-control" id="ip_address" name="ip_address" value="{{ server.ip_address if server else '' }}" placeholder="Например: 192.168.1.100:22 или 10.0.0.1">
                     </div>
                     
                     <div class="row">
