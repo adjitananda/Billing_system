@@ -113,6 +113,7 @@ class HistoryImporter:
             
     def load_servers(self):
         self.cursor.execute("""
+            print(f"DEBUG: values count = {len((server_name, client_id, config[physical_server_id], active_status_id, event_date, config.get(purpose, ), config.get(os, ), config.get(ip_address, ), config.get(cpu_cores, 0), config.get(ram_gb, 0), config.get(nvme1_gb, 0), config.get(nvme2_gb, 0), config.get(nvme3_gb, 0), config.get(nvme4_gb, 0), config.get(nvme5_gb, 0), config.get(hdd_gb, 0)))}")
             SELECT id, client_id, name as server_name, start_date, stop_date,
                    cpu_cores, ram_gb, nvme1_gb, nvme2_gb, nvme3_gb, nvme4_gb, nvme5_gb, hdd_gb
             FROM virtual_servers
@@ -146,7 +147,7 @@ class HistoryImporter:
         logger.error(f"Хост '{name}' не найден в БД.")
         sys.exit(1)
         
-    def get_or_create_server(self, client_id: int, server_name: str, event_date: date, 
+        def get_or_create_server(self, client_id: int, server_name: str, event_date: date, 
                              config: Dict[str, Any]) -> int:
         key = (client_id, server_name)
         if key in self.servers_cache:
@@ -164,11 +165,15 @@ class HistoryImporter:
         active_status_id = self.status_cache.get('active', 1)
         self.cursor.execute("""
             INSERT INTO virtual_servers (
-                name, client_id, physical_server_id, status_id, start_date,
-                cpu_cores, ram_gb, nvme1_gb, nvme2_gb, nvme3_gb, nvme4_gb, nvme5_gb, hdd_gb
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                name, client_id, physical_server_id, status_id,
+                purpose, os, ip_address,
+                start_date,
+                cpu_cores, ram_gb,
+                nvme1_gb, nvme2_gb, nvme3_gb, nvme4_gb, nvme5_gb, hdd_gb
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             server_name, client_id, config['physical_server_id'], active_status_id,
+            config.get('purpose', ''), config.get('os', ''), config.get('ip_address', ''),
             event_date,
             config.get('cpu_cores', 0), config.get('ram_gb', 0),
             config.get('nvme1_gb', 0), config.get('nvme2_gb', 0),
@@ -183,23 +188,25 @@ class HistoryImporter:
         self.stats['servers_activated'] += 1
         logger.info(f"Создан сервер: {server_name} (ID: {server_id})")
         return server_id
-        
+
     def update_server_config(self, server_id: int, config: Dict[str, Any], event_date: date):
         if self.dry_run:
             logger.info(f"DRY-RUN: Будет изменена конфигурация сервера {server_id}")
             self.stats['servers_changed'] += 1
             return
         self.cursor.execute("""
+            print(f"DEBUG: values count = {len((server_name, client_id, config[physical_server_id], active_status_id, event_date, config.get(purpose, ), config.get(os, ), config.get(ip_address, ), config.get(cpu_cores, 0), config.get(ram_gb, 0), config.get(nvme1_gb, 0), config.get(nvme2_gb, 0), config.get(nvme3_gb, 0), config.get(nvme4_gb, 0), config.get(nvme5_gb, 0), config.get(hdd_gb, 0)))}")
             INSERT INTO vm_config_history (
                 vm_id, effective_from, cpu_cores, ram_gb,
                 nvme1_gb, nvme2_gb, nvme3_gb, nvme4_gb, nvme5_gb, hdd_gb
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (server_id, event_date,
               config.get('cpu_cores', 0), config.get('ram_gb', 0),
               config.get('nvme1_gb', 0), config.get('nvme2_gb', 0),
               config.get('nvme3_gb', 0), config.get('nvme4_gb', 0),
               config.get('nvme5_gb', 0), config.get('hdd_gb', 0)))
         self.cursor.execute("""
+            print(f"DEBUG: values count = {len((server_name, client_id, config[physical_server_id], active_status_id, event_date, config.get(purpose, ), config.get(os, ), config.get(ip_address, ), config.get(cpu_cores, 0), config.get(ram_gb, 0), config.get(nvme1_gb, 0), config.get(nvme2_gb, 0), config.get(nvme3_gb, 0), config.get(nvme4_gb, 0), config.get(nvme5_gb, 0), config.get(hdd_gb, 0)))}")
             UPDATE virtual_servers
             SET cpu_cores = %s, ram_gb = %s,
                 nvme1_gb = %s, nvme2_gb = %s, nvme3_gb = %s,
@@ -219,6 +226,7 @@ class HistoryImporter:
             return
         deleted_status_id = self.status_cache.get('deleted', 4)
         self.cursor.execute("""
+            print(f"DEBUG: values count = {len((server_name, client_id, config[physical_server_id], active_status_id, event_date, config.get(purpose, ), config.get(os, ), config.get(ip_address, ), config.get(cpu_cores, 0), config.get(ram_gb, 0), config.get(nvme1_gb, 0), config.get(nvme2_gb, 0), config.get(nvme3_gb, 0), config.get(nvme4_gb, 0), config.get(nvme5_gb, 0), config.get(hdd_gb, 0)))}")
             UPDATE virtual_servers SET status_id = %s, stop_date = %s WHERE id = %s
         """, (deleted_status_id, event_date, server_id))
         self.stats['servers_deactivated'] += 1
@@ -245,12 +253,14 @@ class HistoryImporter:
                     continue
                 if exists and self.force:
                     self.cursor.execute("""
+            print(f"DEBUG: values count = {len((server_name, client_id, config[physical_server_id], active_status_id, event_date, config.get(purpose, ), config.get(os, ), config.get(ip_address, ), config.get(cpu_cores, 0), config.get(ram_gb, 0), config.get(nvme1_gb, 0), config.get(nvme2_gb, 0), config.get(nvme3_gb, 0), config.get(nvme4_gb, 0), config.get(nvme5_gb, 0), config.get(hdd_gb, 0)))}")
                         UPDATE resource_prices SET cpu_price_per_core=%s, ram_price_per_gb=%s,
                             nvme_price_per_gb=%s, hdd_price_per_gb=%s WHERE effective_from=%s
                     """, (float(row['cpu_price_per_core']), float(row['ram_price_per_gb']),
                           float(row['nvme_price_per_gb']), float(row['hdd_price_per_gb']), effective_from))
                 else:
                     self.cursor.execute("""
+            print(f"DEBUG: values count = {len((server_name, client_id, config[physical_server_id], active_status_id, event_date, config.get(purpose, ), config.get(os, ), config.get(ip_address, ), config.get(cpu_cores, 0), config.get(ram_gb, 0), config.get(nvme1_gb, 0), config.get(nvme2_gb, 0), config.get(nvme3_gb, 0), config.get(nvme4_gb, 0), config.get(nvme5_gb, 0), config.get(hdd_gb, 0)))}")
                         INSERT INTO resource_prices (effective_from, cpu_price_per_core, ram_price_per_gb,
                             nvme_price_per_gb, hdd_price_per_gb) VALUES (%s, %s, %s, %s, %s)
                     """, (effective_from, float(row['cpu_price_per_core']), float(row['ram_price_per_gb']),
@@ -264,6 +274,7 @@ class HistoryImporter:
         if target_date in self.prices_cache:
             return self.prices_cache[target_date]
         self.cursor.execute("""
+            print(f"DEBUG: values count = {len((server_name, client_id, config[physical_server_id], active_status_id, event_date, config.get(purpose, ), config.get(os, ), config.get(ip_address, ), config.get(cpu_cores, 0), config.get(ram_gb, 0), config.get(nvme1_gb, 0), config.get(nvme2_gb, 0), config.get(nvme3_gb, 0), config.get(nvme4_gb, 0), config.get(nvme5_gb, 0), config.get(hdd_gb, 0)))}")
             SELECT * FROM resource_prices WHERE effective_from <= %s ORDER BY effective_from DESC LIMIT 1
         """, (target_date,))
         price = self.cursor.fetchone()
@@ -285,6 +296,7 @@ class HistoryImporter:
     def generate_daily_billing(self):
         logger.info("Генерация ежедневных биллинговых записей...")
         self.cursor.execute("""
+            print(f"DEBUG: values count = {len((server_name, client_id, config[physical_server_id], active_status_id, event_date, config.get(purpose, ), config.get(os, ), config.get(ip_address, ), config.get(cpu_cores, 0), config.get(ram_gb, 0), config.get(nvme1_gb, 0), config.get(nvme2_gb, 0), config.get(nvme3_gb, 0), config.get(nvme4_gb, 0), config.get(nvme5_gb, 0), config.get(hdd_gb, 0)))}")
             SELECT id, client_id, name as server_name, start_date, stop_date,
                    cpu_cores, ram_gb, nvme1_gb, nvme2_gb, nvme3_gb, nvme4_gb, nvme5_gb, hdd_gb
             FROM virtual_servers
@@ -297,6 +309,7 @@ class HistoryImporter:
             if not start_date:
                 continue
             self.cursor.execute("""
+            print(f"DEBUG: values count = {len((server_name, client_id, config[physical_server_id], active_status_id, event_date, config.get(purpose, ), config.get(os, ), config.get(ip_address, ), config.get(cpu_cores, 0), config.get(ram_gb, 0), config.get(nvme1_gb, 0), config.get(nvme2_gb, 0), config.get(nvme3_gb, 0), config.get(nvme4_gb, 0), config.get(nvme5_gb, 0), config.get(hdd_gb, 0)))}")
                 SELECT effective_from, cpu_cores, ram_gb, nvme1_gb, nvme2_gb, nvme3_gb, nvme4_gb, nvme5_gb, hdd_gb
                 FROM vm_config_history WHERE vm_id = %s ORDER BY effective_from ASC
             """, (server['id'],))
@@ -334,17 +347,19 @@ class HistoryImporter:
                         exists = self.cursor.fetchone()
                         if exists and self.force:
                             self.cursor.execute("""
+            print(f"DEBUG: values count = {len((server_name, client_id, config[physical_server_id], active_status_id, event_date, config.get(purpose, ), config.get(os, ), config.get(ip_address, ), config.get(cpu_cores, 0), config.get(ram_gb, 0), config.get(nvme1_gb, 0), config.get(nvme2_gb, 0), config.get(nvme3_gb, 0), config.get(nvme4_gb, 0), config.get(nvme5_gb, 0), config.get(hdd_gb, 0)))}")
                                 UPDATE daily_billing SET cpu_cost=%s, ram_cost=%s, nvme_cost=%s, hdd_cost=%s, total_cost=%s
                                 WHERE vm_id=%s AND billing_date=%s
                             """, (cost['cpu'], cost['ram'], cost['nvme'], cost['hdd'], cost['total'],
                                   server['id'], current_day))
                         elif not exists:
                             self.cursor.execute("""
+            print(f"DEBUG: values count = {len((server_name, client_id, config[physical_server_id], active_status_id, event_date, config.get(purpose, ), config.get(os, ), config.get(ip_address, ), config.get(cpu_cores, 0), config.get(ram_gb, 0), config.get(nvme1_gb, 0), config.get(nvme2_gb, 0), config.get(nvme3_gb, 0), config.get(nvme4_gb, 0), config.get(nvme5_gb, 0), config.get(hdd_gb, 0)))}")
                                 INSERT INTO daily_billing (billing_date, vm_id, client_id, cpu_cores, ram_gb,
                                     nvme1_gb, nvme2_gb, nvme3_gb, nvme4_gb, nvme5_gb, hdd_gb,
                                     cpu_price, ram_price, nvme_price, hdd_price,
                                     cpu_cost, ram_cost, nvme_cost, hdd_cost, total_cost)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                             """, (current_day, server['id'], server['client_id'],
                                   period['config']['cpu_cores'], period['config']['ram_gb'],
                                   period['config']['nvme1_gb'], period['config']['nvme2_gb'],
