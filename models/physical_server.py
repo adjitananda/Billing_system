@@ -230,31 +230,6 @@ class PhysicalServer(BaseModel):
         finally:
             conn.close()
     
-    @classmethod
-    def create(cls, data: Dict[str, Any]) -> Optional[int]:
-        """Создать новый физический сервер"""
-        from config.database import get_connection
-        get_db_connection = get_connection
-        
-        conn = get_db_connection()
-        try:
-            cursor = conn.cursor()
-            query = f"""
-                INSERT INTO {cls.TABLE_NAME} 
-                (name, total_cores, total_ram_gb, total_nvme_gb, total_hdd_gb) 
-                VALUES (%s, %s, %s, %s, %s)
-            """
-            cursor.execute(query, (
-                data['name'],
-                data['total_cores'],
-                data['total_ram_gb'],
-                data.get('total_nvme_gb', 0),
-                data.get('total_hdd_gb', 0)
-            ))
-            conn.commit()
-            return cursor.lastrowid
-        finally:
-            conn.close()
     
     @classmethod
     def update(cls, server_id: int, data: Dict[str, Any]) -> bool:

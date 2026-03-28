@@ -1,0 +1,4 @@
+date	server_name	client_name	cpu_cores	ram_gb	nvme1_gb	nvme2_gb	nvme3_gb	nvme4_gb	nvme5_gb	hdd_gb	price_cpu	price_ram	price_nvme	price_hdd	cpu_cost	ram_cost	nvme_cost	hdd_cost	total_cost
+2025-01-15	srv-web-01	ООО Ромашка	4	8	100	0	0	0	0	50	50.00	10.00	0.50	0.25	200.00	80.00	50.00	12.50	342.50
+2025-01-15	srv-db-01	ООО Ромашка	8	16	200	100	0	0	0	100	50.00	10.00	0.50	0.25	400.00	160.00	150.00	25.00	735.00
+2025-01-16	srv-web-01	ООО Ромашка	4	8	100	0	0	0	0	50	50.00	10.00	0.50	0.25	200.00	80.00	50.00	12.50	342.50
