@@ -1,4 +1,2 @@
 effective_from,cpu_price_per_core,ram_price_per_gb,nvme_price_per_gb,hdd_price_per_gb
-2025-10-01,45.00,9.00,0.45,0.22
-2026-01-01,50.00,10.00,0.50,0.25
-2026-03-01,55.00,11.00,0.55,0.28
+2025-09-01,6.00,3.00,0.2,0.2
