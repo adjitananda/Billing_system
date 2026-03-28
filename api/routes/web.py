@@ -328,13 +328,27 @@ async def list_physical_servers(request: Request):
     except Exception as e:
         return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
 
+@router.get("/physical-servers/{server_id}", response_class=HTMLResponse)
+async def physical_server_detail(request: Request, server_id: int):
+    """Страница детального просмотра физического сервера"""
+    physical_server = await api_request("GET", f"/physical-servers/{server_id}")
+    
+    # Получаем список виртуальных серверов на этом хосте
+    all_vms = await api_request("GET", "/servers/")
+    vms_on_host = [vm for vm in all_vms if vm.get("physical_server_id") == server_id]
+    
+    return templates.TemplateResponse(
+        "physical_servers/detail.html",
+        {"request": request, "physical_server": physical_server, "virtual_servers": vms_on_host}
+    )
+
 @router.get("/physical-servers/create", response_class=HTMLResponse)
 async def create_physical_server_form(request: Request):
     return templates.TemplateResponse("physical_servers/form.html", {"request": request, "server": None})
 
 @router.post("/physical-servers/create")
-async def create_physical_server(request: Request, name: str = Form(...), total_cores: int = Form(...), total_ram_gb: int = Form(...), total_nvme_gb: int = Form(...), total_hdd_gb: int = Form(...)):
-    data = {"name": name, "total_cores": total_cores, "total_ram_gb": total_ram_gb, "total_nvme_gb": total_nvme_gb, "total_hdd_gb": total_hdd_gb}
+async def create_physical_server(request: Request, name: str = Form(...), total_cores: int = Form(...), total_ram_gb: int = Form(...), total_nvme_gb: int = Form(...), total_sata_gb: int = Form(...)):
+    data = {"name": name, "total_cores": total_cores, "total_ram_gb": total_ram_gb, "total_nvme_gb": total_nvme_gb, "total_sata_gb": total_sata_gb}
     await api_request("POST", "/physical-servers/", json=data)
     return RedirectResponse(url="/physical-servers", status_code=303)
 
@@ -344,8 +358,8 @@ async def edit_physical_server_form(request: Request, server_id: int):
     return templates.TemplateResponse("physical_servers/form.html", {"request": request, "server": server})
 
 @router.post("/physical-servers/{server_id}/edit")
-async def edit_physical_server(request: Request, server_id: int, name: str = Form(...), total_cores: int = Form(...), total_ram_gb: int = Form(...), total_nvme_gb: int = Form(...), total_hdd_gb: int = Form(...)):
-    data = {"name": name, "total_cores": total_cores, "total_ram_gb": total_ram_gb, "total_nvme_gb": total_nvme_gb, "total_hdd_gb": total_hdd_gb}
+async def edit_physical_server(request: Request, server_id: int, name: str = Form(...), total_cores: int = Form(...), total_ram_gb: int = Form(...), total_nvme_gb: int = Form(...), total_sata_gb: int = Form(...)):
+    data = {"name": name, "total_cores": total_cores, "total_ram_gb": total_ram_gb, "total_nvme_gb": total_nvme_gb, "total_sata_gb": total_sata_gb}
     await api_request("PUT", f"/physical-servers/{server_id}", json=data)
     return RedirectResponse(url="/physical-servers", status_code=303)
 

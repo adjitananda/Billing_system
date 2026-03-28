@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Хост {{ physical_server.name }} - Биллинг ДЦ{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Хост: {{ physical_server.name }}</h1>
+    <div>
+        <a href="/physical-servers/{{ physical_server.id }}/edit" class="btn btn-warning">Редактировать</a>
+        <a href="/physical-servers" class="btn btn-secondary">Назад</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Общая информация</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tr><th>ID</th><td>{{ physical_server.id }}</td></tr>
+                    <tr><th>Название</th><td>{{ physical_server.name }}</td></tr>
+                    <tr><th>Всего ядер CPU</th><td>{{ physical_server.total_cores }}</td></tr>
+                    <tr><th>Всего RAM (ГБ)</th><td>{{ physical_server.total_ram_gb }}</td></tr>
+                    <tr><th>Всего NVMe (ГБ)</th><td>{{ physical_server.total_nvme_gb }}</td></tr>
+                    <tr><th>Всего HDD (ГБ)</th><td>{{ physical_server.total_sata_gb }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Использование</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tr><th>Виртуальных серверов</th><td>{{ physical_server.vm_count }}</td></tr>
+                    <tr><th>Использовано ядер</th><td>{{ physical_server.used_cores }} / {{ physical_server.total_cores }}</td></tr>
+                    <tr><th>Использовано RAM (ГБ)</th><td>{{ physical_server.used_ram_gb }} / {{ physical_server.total_ram_gb }}</td></tr>
+                    <tr><th>Загрузка</th><td>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-{% if physical_server.usage_percent < 70 %}success{% elif physical_server.usage_percent < 90 %}warning{% else %}danger{% endif %}" 
+                                 style="width: {{ physical_server.usage_percent }}%">
+                                {{ physical_server.usage_percent }}%
+                            </div>
+                        </div>
+                    </td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5>Виртуальные серверы на этом хосте</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Название</th>
+                        <th>Клиент</th>
+                        <th>Статус</th>
+                        <th>CPU</th>
+                        <th>RAM (ГБ)</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vm in virtual_servers %}
+                    <tr>
+                        <td>{{ vm.id }}</td>
+                        <td><a href="/servers/{{ vm.id }}">{{ vm.name }}</a></td>
+                        <td>{{ vm.client_name }}</td>
+                        <td>
+                            {% if vm.status == 'active' %}
+                            <span class="badge bg-success">Активен</span>
+                            {% elif vm.status == 'deleted' %}
+                            <span class="badge bg-danger">Удалён</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ vm.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ vm.cpu_cores }}</td>
+                        <td>{{ vm.ram_gb }}</td>
+                        <td>
+                            <a href="/servers/{{ vm.id }}/edit" class="btn btn-sm btn-warning">Ред.</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">Нет виртуальных серверов на этом хосте</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

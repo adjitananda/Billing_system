@@ -98,6 +98,7 @@ async def get_physical_server(server_id: int):
 
 @router.put("/{server_id}", response_model=PhysicalServerResponse)
 async def update_physical_server(server_id: int, server_update: PhysicalServerUpdate):
+    print(f"UPDATE physical server {server_id}: {server_update.dict()}")
     """Обновить физический сервер"""
     server = PhysicalServer.get_by_id(server_id)
     if not server:

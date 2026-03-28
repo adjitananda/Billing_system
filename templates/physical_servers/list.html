@@ -31,7 +31,7 @@
                 <td>{{ server.total_cores }}</td>
                 <td>{{ server.total_ram_gb }}</td>
                 <td>{{ server.total_nvme_gb }}</td>
-                <td>{{ server.total_hdd_gb }}</td>
+                <td>{{ server.total_sata_gb }}</td>
                 <td>
                     <div class="progress" style="height: 20px;">
                         <div class="progress-bar bg-{% if server.usage_percent < 70 %}success{% elif server.usage_percent < 90 %}warning{% else %}danger{% endif %}" 

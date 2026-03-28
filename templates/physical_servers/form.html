@@ -31,8 +31,8 @@
                             <input type="number" class="form-control" id="total_nvme_gb" name="total_nvme_gb" value="{{ server.total_nvme_gb if server else 500 }}" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="total_hdd_gb" class="form-label">Всего HDD (ГБ)</label>
-                            <input type="number" class="form-control" id="total_hdd_gb" name="total_hdd_gb" value="{{ server.total_hdd_gb if server else 1000 }}" required>
+                            <label for="total_sata_gb" class="form-label">Всего HDD (ГБ)</label>
+                            <input type="number" class="form-control" id="total_sata_gb" name="total_sata_gb" value="{{ server.total_sata_gb if server else 1000 }}" required>
                         </div>
                     </div>
                     <div class="d-flex justify-content-between">
