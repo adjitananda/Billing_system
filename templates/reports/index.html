@@ -31,7 +31,7 @@
             </div>
             
             <div class="mb-3" id="server_block" style="display: none;">
-                <label for="server_id" class="form-label">Сервер</label>
+                <label for="server_id" class="form-label">Сервер (ID)</label>
                 <input type="number" class="form-control" id="server_id" name="server_id" placeholder="ID сервера">
             </div>
             
@@ -77,6 +77,132 @@
         }
     });
     
+    function formatNumber(value) {
+        return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+    }
+    
+    function renderSummaryReport(data) {
+        let html = `<h6>Период: ${data.period.start} — ${data.period.end}</h6>`;
+        html += `<h4 class="text-success">Итого: ${formatNumber(data.total)} ₽</h4>`;
+        
+        if (data.clients && data.clients.length > 0) {
+            html += `<table class="table table-striped mt-3">
+                <thead>
+                    <tr><th>Клиент</th><th>Количество серверов</th><th>Сумма (₽)</th></tr>
+                </thead>
+                <tbody>`;
+            for (const client of data.clients) {
+                html += `<tr>
+                    <td>${client.client_name}</td>
+                    <td>${client.server_count}</td>
+                    <td>${formatNumber(client.amount)}</td>
+                </tr>`;
+            }
+            html += `</tbody></table>`;
+        } else if (data.months && data.months.length > 0) {
+            html += `<table class="table table-striped mt-3">
+                <thead><tr><th>Месяц</th><th>Сумма (₽)</th></tr></thead>
+                <tbody>`;
+            for (const month of data.months) {
+                html += `<tr><td>${month.month}</td><td>${formatNumber(month.amount)}</td></tr>`;
+            }
+            html += `</tbody></table>`;
+        } else if (data.days && data.days.length > 0) {
+            html += `<table class="table table-striped mt-3">
+                <thead><tr><th>Дата</th><th>Сумма (₽)</th></tr></thead>
+                <tbody>`;
+            for (const day of data.days) {
+                html += `<tr><td>${day.date}</td><td>${formatNumber(day.amount)}</td></tr>`;
+            }
+            html += `</tbody></table>`;
+        }
+        
+        return html;
+    }
+    
+    function renderClientReport(data) {
+        let html = `<h6>Клиент: ${data.client_name}</h6>`;
+        html += `<h6>Период: ${data.period.start} — ${data.period.end}</h6>`;
+        html += `<h4 class="text-success">Итого: ${formatNumber(data.total_amount)} ₽</h4>`;
+        
+        if (data.servers && data.servers.length > 0) {
+            html += `<table class="table table-striped mt-3">
+                <thead>
+                    <tr><th>Сервер</th><th>Дней</th><th>Сумма (₽)</th></tr>
+                </thead>
+                <tbody>`;
+            for (const server of data.servers) {
+                html += `<tr>
+                    <td>${server.server_name}</td>
+                    <td>${server.days}</td>
+                    <td>${formatNumber(server.amount)}</td>
+                </tr>`;
+            }
+            html += `<tr class="table-active"><td colspan="2"><strong>Итого</strong></td>
+                     <td><strong>${formatNumber(data.total_amount)}</strong></td></tr>`;
+            html += `</tbody></table>`;
+        }
+        
+        if (data.daily_breakdown && data.daily_breakdown.length > 0) {
+            html += `<h6 class="mt-4">Дневная разбивка</h6>
+                <table class="table table-sm table-striped">
+                    <thead><tr><th>Дата</th><th>Сумма (₽)</th></tr></thead>
+                    <tbody>`;
+            for (const day of data.daily_breakdown) {
+                html += `<tr><td>${day.date}</td><td>${formatNumber(day.amount)}</td></tr>`;
+            }
+            html += `</tbody></table>`;
+        }
+        
+        return html;
+    }
+    
+    function renderServerReport(data) {
+        let html = `<h6>Сервер: ${data.server_name} (ID: ${data.server_id})</h6>`;
+        html += `<h6>Клиент: ${data.client_name}</h6>`;
+        html += `<h6>Период: ${data.period.start} — ${data.period.end}</h6>`;
+        html += `<h4 class="text-success">Итого: ${formatNumber(data.total_amount)} ₽</h4>`;
+        html += `<p>Всего дней: ${data.days}</p>`;
+        
+        if (data.daily_breakdown && data.daily_breakdown.length > 0) {
+            html += `<table class="table table-striped mt-3">
+                <thead>
+                    <tr><th>Дата</th><th>CPU</th><th>RAM</th><th>NVMe</th><th>HDD</th><th>Стоимость (₽)</th></tr>
+                </thead>
+                <tbody>`;
+            for (const day of data.daily_breakdown) {
+                html += `<tr>
+                    <td>${day.date}</td>
+                    <td>${day.cpu_cores}</td>
+                    <td>${day.ram_gb} ГБ</td>
+                    <td>${day.nvme_gb} ГБ</td>
+                    <td>${day.sata_gb} ГБ</td>
+                    <td>${formatNumber(day.cost)}</td>
+                </tr>`;
+            }
+            html += `</tbody></table>`;
+        }
+        
+        if (data.config_changes && data.config_changes.length > 0) {
+            html += `<h6 class="mt-4">Изменения конфигурации</h6>
+                <table class="table table-sm table-striped">
+                    <thead><tr><th>Дата</th><th>CPU</th><th>RAM</th><th>NVMe</th><th>HDD</th></tr></thead>
+                    <tbody>`;
+            for (const change of data.config_changes) {
+                html += `<tr>
+                    <td>${change.effective_from}</td>
+                    <td>${change.cpu_cores}</td>
+                    <td>${change.ram_gb} ГБ</td>
+                    <td>${change.nvme_gb} ГБ</td>
+                    <td>${change.sata_gb} ГБ</td>
+                </tr>`;
+            }
+            html += `</tbody></table>`;
+        }
+        
+        return html;
+    }
+    
     document.getElementById('reportForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const formData = new FormData(this);
@@ -99,11 +225,16 @@
             const response = await fetch(url);
             const data = await response.json();
             
-            document.getElementById('report_content').innerHTML = `
-                <h6>Период: ${formData.get('start_date')} — ${formData.get('end_date')}</h6>
-                <h4 class="text-success">Итого: ${data.total || 0} ₽</h4>
-                <pre class="mt-3 bg-light p-3">${JSON.stringify(data, null, 2)}</pre>
-            `;
+            let html = '';
+            if (reportType === 'summary') {
+                html = renderSummaryReport(data);
+            } else if (reportType === 'client') {
+                html = renderClientReport(data);
+            } else if (reportType === 'server') {
+                html = renderServerReport(data);
+            }
+            
+            document.getElementById('report_content').innerHTML = html;
             document.getElementById('report_result').style.display = 'block';
         } catch (error) {
             alert('Ошибка при формировании отчёта: ' + error.message);
