@@ -5,6 +5,9 @@ from fastapi import APIRouter, Request, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import httpx
+from decimal import Decimal
+from config.database import get_connection
+from services.billing_service import get_active_servers_on_date, get_config_on_date, get_prices_on_date, calculate_server_cost
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -145,10 +148,43 @@ async def client_detail(request: Request, client_id: int):
             pass
     except:
         servers = []
-    return templates.TemplateResponse("clients/detail.html", {"request": request, "client": client, "servers": servers})
+    
+    # Расчет дневной и месячной стоимости
+    daily_cost = 0.0
+    try:
+        conn = get_connection()
+        today = date.today().isoformat()
+        
+        # Получаем активные серверы на сегодня
+        active_servers = get_active_servers_on_date(conn, today)
+        # Фильтруем по client_id
+        client_servers = [s for s in active_servers if s.get("client_id") == client_id]
+        
+        if client_servers:
+            # Получаем цены на сегодня
+            prices = get_prices_on_date(conn, today)
+            if prices:
+                for server in client_servers:
+                    # Получаем конфигурацию на сегодня
+                    config = get_config_on_date(conn, server["id"], today)
+                    if config:
+                        cost_dict = calculate_server_cost(config, prices)
+                        daily_cost += float(cost_dict["total_cost"])
+        conn.close()
+    except Exception as e:
+        print(f"Error calculating daily cost: {e}")
+        daily_cost = 0.0
+    
+    monthly_cost_approx = daily_cost * 31
+    
+    return templates.TemplateResponse("clients/detail.html", {
+        "request": request,
+        "client": client,
+        "servers": servers,
+        "daily_cost": daily_cost,
+        "monthly_cost_approx": monthly_cost_approx
+    })
 
-# ==================== СЕРВЕРЫ ====================
-@router.get("/servers", response_class=HTMLResponse)
 async def list_servers(request: Request, status: str = "", client_id: str = ""):
     """Список серверов"""
     servers = await api_request("GET", "/servers/")
