@@ -263,9 +263,10 @@ class VirtualServer(BaseModel):
         except Exception as e:
             logger.error(f"Ошибка при изменении статуса сервера: {e}")
             return False
+    
     @classmethod
     def get_by_physical_server(cls, physical_server_id: int) -> List[Dict]:
-        """Получить все виртуальные серверы на физическом сервере"""
+        """Получить все виртуальные серверы на физическом сервере с информацией о клиенте"""
         from config.database import get_connection
         get_db_connection = get_connection
         
@@ -273,26 +274,14 @@ class VirtualServer(BaseModel):
         try:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("""
-                SELECT * FROM virtual_servers 
-                WHERE physical_server_id = %s 
-                ORDER BY id
-            """, (physical_server_id,))
-            return cursor.fetchall()
-        finally:
-            conn.close()
-
-    @classmethod
-    def get_by_physical_server(cls, physical_server_id: int) -> List[Dict]:
-        """Получить все виртуальные серверы на физическом сервере"""
-        from config.database import get_connection
-        get_db_connection = get_connection
-        
-        conn = get_db_connection()
-        try:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("""
-                SELECT vs.*, vs.cpu_cores, vs.ram_gb
+                SELECT 
+                    vs.*,
+                    c.id as client_id,
+                    c.name as client_name,
+                    vms.code as status
                 FROM virtual_servers vs
+                LEFT JOIN clients c ON vs.client_id = c.id
+                LEFT JOIN vm_statuses vms ON vs.status_id = vms.id
                 WHERE vs.physical_server_id = %s 
                 ORDER BY vs.id
             """, (physical_server_id,))
