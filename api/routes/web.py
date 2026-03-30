@@ -126,6 +126,8 @@ async def list_clients(request: Request, search: str = ""):
     except Exception as e:
         return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
 
+@router.get("/clients/create", response_class=HTMLResponse)
+
 async def create_client_form(request: Request):
     return templates.TemplateResponse("clients/form.html", {"request": request, "client": None})
 
@@ -374,11 +376,6 @@ async def activate_server_redirect(request: Request, server_id: int):
         await client.post(f"{API_BASE_URL}/servers/{server_id}/status?status_code=active")
     return RedirectResponse(url=f"/servers/{server_id}", status_code=303)
 
-# Old deactivate route
-@router.post("/servers/{server_id}/deactivate")
-async def activate_server(request: Request, server_id: int):
-    await api_request("POST", f"/servers/{server_id}/activate")
-    return RedirectResponse(url=f"/servers/{server_id}", status_code=303)
 
 @router.post("/servers/{server_id}/deactivate")
 async def deactivate_server(request: Request, server_id: int):

@@ -7,7 +7,7 @@
     <h1>{{ server.name }}</h1>
     <div>
         <a href="/servers/{{ server.id }}/edit" class="btn btn-warning">Редактировать</a>
-        {% if server.status == 'draft' %}
+        {% if server.status == 'inactive' %}
         <form method="post" action="/servers/{{ server.id }}/activate" style="display: inline;">
             <button type="submit" class="btn btn-success">Активировать</button>
         </form>
@@ -48,8 +48,8 @@
                         </td>
                     </tr>
                     <tr><th>Статус:</th>
-                        <td><span class="badge bg-{% if server.status == 'active' %}success{% elif server.status == 'draft' %}secondary{% else %}danger{% endif %}">
-                            {% if server.status == 'active' %}Активен{% elif server.status == 'draft' %}Черновик{% else %}Удалён{% endif %}
+                        <td><span class="badge bg-{% if server.status == 'active' %}success{% elif server.status == 'inactive' %}secondary{% else %}danger{% endif %}">
+                            {% if server.status == 'active' %}Активен{% elif server.status == 'inactive' %}Не активен{% else %}Удалён{% endif %}
                         </span></td>
                     </tr>
                     <tr><th>Назначение:</th><td>{{ server.purpose or "—" }}</td></tr>

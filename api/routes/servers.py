@@ -179,7 +179,7 @@ def build_server_response(cursor, row: dict, db: MySQLConnection) -> ServerRespo
 @router.get("/", response_model=List[ServerResponse])
 async def get_servers(
     client_id: Optional[int] = Query(None, description="Filter by client ID"),
-    status: Optional[str] = Query(None, description="Filter by status (active/draft/deleted)"),
+    status: Optional[str] = Query(None, description="Filter by status (active/inactive/deleted)"),
     db: MySQLConnection = Depends(get_db)
 ):
     """Get all servers with optional filters."""
@@ -235,7 +235,7 @@ async def create_server(
     server_data: ServerCreate,
     db: MySQLConnection = Depends(get_db)
 ):
-    """Create a new server with draft status."""
+    """Create a new server with inactive status."""
     cursor = db.cursor(dictionary=True)
     
     cursor.execute("SELECT id FROM clients WHERE id = %s", (server_data.client_id,))
@@ -248,13 +248,13 @@ async def create_server(
         cursor.close()
         raise HTTPException(status_code=404, detail="Physical server not found")
     
-    draft_status_id = get_status_id(db, VMStatus.DRAFT)
+    inactive_status_id = get_status_id(db, VMStatus.INACTIVE)
     
     server_dict = {
         'name': server_data.name,
         'client_id': server_data.client_id,
         'physical_server_id': server_data.physical_server_id,
-        'status_id': draft_status_id,
+        'status_id': inactive_status_id,
         'purpose': server_data.purpose,
         'os': server_data.os,
         'cpu_cores': server_data.cpu_cores,
@@ -406,7 +406,7 @@ async def activate_server(server_id: int, db: MySQLConnection = Depends(get_db))
 
 @router.post("/{server_id}/deactivate", response_model=ServerResponse)
 async def deactivate_server(server_id: int, db: MySQLConnection = Depends(get_db)):
-    """Deactivate server. Sets status to deleted and stop_date to today."""
+    """Deactivate server. Sets status to inactive and stop_date to today."""
     cursor = db.cursor(dictionary=True)
     
     row = get_server_dict(cursor, server_id)
@@ -416,91 +416,28 @@ async def deactivate_server(server_id: int, db: MySQLConnection = Depends(get_db
     
     current_status_code = get_status_code_by_id(cursor, row['status_id'])
     
+    if current_status_code == VMStatus.INACTIVE:
+        cursor.close()
+        raise HTTPException(status_code=400, detail="Server is already inactive")
+    
     if current_status_code == VMStatus.DELETED:
         cursor.close()
-        raise HTTPException(status_code=400, detail="Server is already deleted")
+        raise HTTPException(status_code=400, detail="Cannot deactivate a deleted server")
     
-    deleted_status_id = get_status_id(db, VMStatus.DELETED)
+    inactive_status_id = get_status_id(db, VMStatus.INACTIVE)
     
     try:
         cursor.execute("""
             UPDATE virtual_servers 
             SET status_id = %s, stop_date = CURDATE()
             WHERE id = %s
-        """, (deleted_status_id, server_id))
+        """, (inactive_status_id, server_id))
         db.commit()
     except Exception as e:
         db.rollback()
         cursor.close()
         raise HTTPException(status_code=500, detail=str(e))
     
-    row = get_server_dict(cursor, server_id)
-    response = build_server_response(cursor, row, db)
-    cursor.close()
-    return response
-
-@router.post("/{server_id}/status")
-async def change_server_status(
-    server_id: int,
-    status_code: str = Query(..., description="New status code: active, inactive, deleted"),
-    db: MySQLConnection = Depends(get_db)
-):
-    """
-    Change server status.
-    Allowed transitions: active -> inactive, active -> deleted, 
-                         inactive -> active, inactive -> deleted,
-                         deleted -> inactive (restore)
-    """
-    cursor = db.cursor(dictionary=True)
-    
-    # Check if server exists
-    row = get_server_dict(cursor, server_id)
-    if not row:
-        cursor.close()
-        raise HTTPException(status_code=404, detail="Server not found")
-    
-    current_status_code = get_status_code_by_id(cursor, row['status_id'])
-    
-    # Validate status code
-    valid_statuses = ['active', 'inactive', 'deleted']
-    if status_code not in valid_statuses:
-        cursor.close()
-        raise HTTPException(status_code=400, detail=f"Invalid status. Allowed: {valid_statuses}")
-    
-    # Get new status ID
-    new_status_id = get_status_id(db, status_code)
-    
-    # Update status
-    try:
-        if status_code == 'deleted':
-            # Set stop_date when deleting
-            cursor.execute("""
-                UPDATE virtual_servers 
-                SET status_id = %s, stop_date = CURDATE()
-                WHERE id = %s
-            """, (new_status_id, server_id))
-        elif current_status_code == 'deleted' and status_code == 'inactive':
-            # Restore from deleted - clear stop_date
-            cursor.execute("""
-                UPDATE virtual_servers 
-                SET status_id = %s, stop_date = NULL
-                WHERE id = %s
-            """, (new_status_id, server_id))
-        else:
-            # Simple status change
-            cursor.execute("""
-                UPDATE virtual_servers 
-                SET status_id = %s, stop_date = NULL
-                WHERE id = %s
-            """, (new_status_id, server_id))
-        
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        cursor.close()
-        raise HTTPException(status_code=500, detail=str(e))
-    
-    # Return updated server
     row = get_server_dict(cursor, server_id)
     response = build_server_response(cursor, row, db)
     cursor.close()
