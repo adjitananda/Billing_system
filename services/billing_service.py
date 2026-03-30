@@ -105,3 +105,40 @@ def calculate_server_cost(
         'total_cost': total_cost,
         'nvme_total': nvme_total,
     }
+
+def calculate_server_cost_with_custom_prices(
+    conn: connection.MySQLConnection,
+    server_id: int,
+    target_date: str,
+    custom_prices: Dict[str, float]
+) -> float:
+    """
+    Рассчитывает стоимость сервера с кастомными ценами.
+    
+    Args:
+        conn: Соединение с БД
+        server_id: ID виртуального сервера
+        target_date: Дата расчета (строка YYYY-MM-DD)
+        custom_prices: Словарь с ценами {'cpu': float, 'ram': float, 'nvme': float, 'hdd': float}
+    
+    Returns:
+        float: Итоговая стоимость сервера в рублях (округлено до 2 знаков)
+    """
+    # Получаем конфигурацию сервера на указанную дату
+    config = get_config_on_date(conn, server_id, target_date)
+    
+    if not config:
+        return 0.0
+    
+    # Получаем сумму NVMe дисков
+    nvme_total = get_total_nvme(config)
+    
+    # Рассчитываем стоимость по кастомным ценам
+    cpu_cost = config.get('cpu_cores', 0) * custom_prices.get('cpu', 0)
+    ram_cost = config.get('ram_gb', 0) * custom_prices.get('ram', 0)
+    nvme_cost = nvme_total * custom_prices.get('nvme', 0)
+    hdd_cost = config.get('hdd_gb', 0) * custom_prices.get('hdd', 0)
+    
+    total_cost = cpu_cost + ram_cost + nvme_cost + hdd_cost
+    
+    return round(float(total_cost), 2)

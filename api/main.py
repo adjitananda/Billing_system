@@ -8,7 +8,9 @@ from fastapi.staticfiles import StaticFiles
 import os
 
 from api.routes import clients, servers, prices, reports, web
+from api.routes import calculator
 from api.routes import physical_servers
+from api.routes import calculator
 
 # Create FastAPI instance
 app = FastAPI(
@@ -46,6 +48,8 @@ app.include_router(physical_servers.router, prefix="/api/v1/physical-servers", t
 
 # Web interface router (without prefix)
 app.include_router(web.router)
+# Include calculator router (API)
+app.include_router(calculator.router, prefix="/api/v1/calculator", tags=["Калькулятор"])
 
 
 @app.get("/")

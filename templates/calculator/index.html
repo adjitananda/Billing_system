@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Калькулятор what-if анализа цен{% endblock %}
+
+{% block head %}
+<style>
+    .calculation-block {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .price-input {
+        max-width: 150px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Калькулятор what-if анализа цен</h1>
+    <a href="/" class="btn btn-secondary">Назад</a>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="calculation-block">
+            <h4>1. Выбор объекта расчёта</h4>
+            <div class="mb-3">
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="calculation_type" value="all_clients" checked>
+                    <label class="form-check-label">По всем клиентам и серверам</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="calculation_type" value="client">
+                    <label class="form-check-label">По клиенту</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="calculation_type" value="server">
+                    <label class="form-check-label">По серверу</label>
+                </div>
+            </div>
+            
+            <div id="client-select-block" style="display: none;" class="mb-3">
+                <label for="client_id" class="form-label">Выберите клиента:</label>
+                <select id="client_id" class="form-select" style="max-width: 300px;">
+                    <option value="">-- Выберите клиента --</option>
+                    {% for client in clients %}
+                    <option value="{{ client.id }}">{{ client.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div id="server-id-block" style="display: none;" class="mb-3">
+                <label for="server_id" class="form-label">ID сервера:</label>
+                <input type="number" id="server_id" class="form-control" style="max-width: 200px;" placeholder="Введите ID сервера">
+            </div>
+        </div>
+        
+        <div class="calculation-block">
+            <h4>2. Настройка цен (₽ за единицу в день)</h4>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="price_cpu" class="form-label">CPU (ядро):</label>
+                    <input type="number" id="price_cpu" class="form-control price-input" step="0.1" value="{{ current_prices.cpu }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="price_ram" class="form-label">RAM (ГБ):</label>
+                    <input type="number" id="price_ram" class="form-control price-input" step="0.1" value="{{ current_prices.ram }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="price_nvme" class="form-label">NVMe (ГБ):</label>
+                    <input type="number" id="price_nvme" class="form-control price-input" step="0.1" value="{{ current_prices.nvme }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="price_hdd" class="form-label">HDD (ГБ):</label>
+                    <input type="number" id="price_hdd" class="form-control price-input" step="0.1" value="{{ current_prices.hdd }}">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="markup_percent" class="form-label">Процент наценки (%):</label>
+                    <input type="number" id="markup_percent" class="form-control price-input" step="0.1" value="20">
+                </div>
+            </div>
+            <button id="calculate-btn" class="btn btn-primary mt-2">Рассчитать</button>
+        </div>
+        
+        <div id="results-container" class="mt-4">
+            <div class="alert alert-info">Нажмите "Рассчитать" для получения результатов</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/calculator.js"></script>
+{% endblock %}

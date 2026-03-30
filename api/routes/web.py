@@ -548,3 +548,33 @@ async def reports_page(request: Request):
         return templates.TemplateResponse("reports/index.html", {"request": request, "clients": clients})
     except Exception as e:
         return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
+
+@router.get("/calculator", response_class=HTMLResponse)
+async def calculator_page(request: Request):
+    """Страница калькулятора what-if анализа цен"""
+    from config.database import get_connection
+    from services.billing_service import get_prices_on_date
+    from datetime import date
+    
+    # Получаем текущие цены
+    conn = get_connection()
+    today = date.today().isoformat()
+    current_prices = get_prices_on_date(conn, today)
+    conn.close()
+    
+    # Получаем список клиентов для выпадающего списка
+    clients = await api_request("GET", "/clients/")
+    
+    # Преобразуем цены в словарь для шаблона
+    prices_dict = {
+        "cpu": float(current_prices.get("cpu_price_per_core", 0)) if current_prices else 0,
+        "ram": float(current_prices.get("ram_price_per_gb", 0)) if current_prices else 0,
+        "nvme": float(current_prices.get("nvme_price_per_gb", 0)) if current_prices else 0,
+        "hdd": float(current_prices.get("hdd_price_per_gb", 0)) if current_prices else 0,
+    }
+    
+    return templates.TemplateResponse("calculator/index.html", {
+        "request": request,
+        "current_prices": prices_dict,
+        "clients": clients
+    })
