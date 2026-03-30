@@ -47,7 +47,8 @@
                 <th>CPU</th>
                 <th>RAM</th>
                 <th>NVMe</th>
-                <th>Стоимость/день</th>
+                <th>Ст./День</th>
+                <th>Ст./31 День</th>
                 <th>Действия</th>
             </tr>
         </thead>
@@ -82,6 +83,7 @@
                     {% if nvme_total > 0 %}{{ nvme_total }} ГБ{% else %}—{% endif %}
                 </td>
                 <td>{{ "%.2f"|format(server.daily_cost) if server.daily_cost else "—" }} ₽</td>
+                <td>{{ "%.2f"|format(server.daily_cost * 31) if server.daily_cost else "—" }} ₽</td>
                 <td>
                     <a href="/servers/{{ server.id }}/edit" class="btn btn-sm btn-warning">Ред.</a>
                     {% if server.status == 'draft' %}
@@ -98,7 +100,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="10" class="text-center">Нет серверов</td>
+                <td colspan="11" class="text-center">Нет серверов</td>
             </tr>
             {% endfor %}
         </tbody>
