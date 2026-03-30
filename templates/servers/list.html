@@ -85,17 +85,20 @@
                 <td>{{ "%.2f"|format(server.daily_cost) if server.daily_cost else "—" }} ₽</td>
                 <td>{{ "%.2f"|format(server.daily_cost * 31) if server.daily_cost else "—" }} ₽</td>
                 <td>
-                    <a href="/servers/{{ server.id }}/edit" class="btn btn-sm btn-warning">Ред.</a>
-                    {% if server.status == 'inactive' %}
-                    <form method="post" action="/servers/{{ server.id }}/activate" style="display: inline;">
-                        <button type="submit" class="btn btn-sm btn-success">Активировать</button>
-                    </form>
-                    {% elif server.status == 'active' %}
-                    <form method="post" action="/servers/{{ server.id }}/deactivate" style="display: inline;">
-                        <button type="submit" class="btn btn-sm btn-warning">Деактивировать</button>
-                    </form>
+                    <a href="/servers/{{ server.id }}" class="btn btn-sm btn-info">Просмотр</a>
+                    {% if server.status != 'deleted' %}
+                        <a href="/servers/{{ server.id }}/edit" class="btn btn-sm btn-warning">Ред.</a>
+                        {% if server.status == 'inactive' %}
+                        <form method="post" action="/servers/{{ server.id }}/activate" style="display: inline;">
+                            <button type="submit" class="btn btn-sm btn-success">Активировать</button>
+                        </form>
+                        {% elif server.status == 'active' %}
+                        <form method="post" action="/servers/{{ server.id }}/deactivate" style="display: inline;">
+                            <button type="submit" class="btn btn-sm btn-warning">Деактивировать</button>
+                        </form>
+                        {% endif %}
+                        <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ server.id }}, '{{ server.name }}')">Удалить</button>
                     {% endif %}
-                    <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ server.id }}, '{{ server.name }}')">Удалить</button>
                 </td>
             </tr>
             {% else %}
