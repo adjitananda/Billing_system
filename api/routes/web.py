@@ -185,6 +185,8 @@ async def client_detail(request: Request, client_id: int):
         "monthly_cost_approx": monthly_cost_approx
     })
 
+@router.get("/servers", response_class=HTMLResponse)
+
 async def list_servers(request: Request, status: str = "", client_id: str = ""):
     """Список серверов"""
     servers = await api_request("GET", "/servers/")
