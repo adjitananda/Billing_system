@@ -81,28 +81,20 @@ async def dashboard(request: Request):
 @router.get("/clients", response_class=HTMLResponse)
 async def list_clients(request: Request, search: str = ""):
     try:
-        clients = await api_request("GET", "/clients/")
+        clients = await api_request("GET", "/clients/with-monthly-total")
         if search:
             clients = [c for c in clients if search.lower() in c.get("name", "").lower()]
         try:
             servers = await api_request("GET", "/servers/")
         except:
             servers = []
-        today = date.today().isoformat()
-        month_start = date.today().replace(day=1).isoformat()
         for client in clients:
             client_servers = [s for s in servers if s.get("client_id") == client["id"]]
             client["server_count"] = len(client_servers)
-            try:
-                month_summary = await api_request("GET", f"/reports/client/{client['id']}?start_date={month_start}&end_date={today}")
-                client["month_total"] = month_summary.get("total", 0)
-            except:
-                client["month_total"] = 0
         return templates.TemplateResponse("clients/list.html", {"request": request, "clients": clients, "search": search})
     except Exception as e:
         return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
 
-@router.get("/clients/create", response_class=HTMLResponse)
 async def create_client_form(request: Request):
     return templates.TemplateResponse("clients/form.html", {"request": request, "client": None})
 

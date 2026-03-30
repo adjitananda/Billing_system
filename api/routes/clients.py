@@ -12,6 +12,44 @@ from api.schemas import ClientCreate, ClientResponse, ClientUpdate
 router = APIRouter()
 
 
+@router.get("/with-monthly-total")
+async def get_clients_with_month_total(db: MySQLConnection = Depends(get_db)):
+    """
+    Get all clients with their monthly total from daily_billing.
+    Returns list of clients with month_total field.
+    """
+    cursor = db.cursor(dictionary=True)
+    
+    query = """
+        SELECT 
+            c.id,
+            c.name,
+            c.created_at,
+            c.updated_at,
+            COALESCE(SUM(db.total_cost), 0) as month_total
+        FROM clients c
+        LEFT JOIN daily_billing db 
+            ON c.id = db.client_id 
+            AND db.billing_date >= DATE_FORMAT(CURDATE(), '%%Y-%%m-01')
+            AND db.billing_date <= CURDATE()
+        GROUP BY c.id, c.name, c.created_at, c.updated_at
+        ORDER BY c.name
+    """
+    
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    cursor.close()
+    
+    # Convert datetime objects to string
+    for row in rows:
+        if row.get('created_at'):
+            row['created_at'] = row['created_at'].isoformat()
+        if row.get('updated_at'):
+            row['updated_at'] = row['updated_at'].isoformat()
+    
+    return rows
+
+
 @router.get("/", response_model=List[ClientResponse])
 async def get_clients(db: MySQLConnection = Depends(get_db)):
     """Get all clients."""
