@@ -20,9 +20,9 @@ class VMStatus(BaseModel):
     Модель для работы с таблицей vm_statuses.
     
     Таблица хранит возможные статусы виртуальных машин:
-    - draft: Черновик (ВМ создается, но еще не активна)
-    - active: Активен (ВМ работает и тарифицируется)
-    - deleted: Удалён (ВМ помечена как удаленная)
+    - inactive: Не активен (сервер создан, но не запущен, ресурсы заняты)
+    - active: Активен (сервер работает и тарифицируется)
+    - deleted: Удалён (сервер удален, ресурсы освобождены)
     
     Attributes:
         TABLE_NAME (str): Имя таблицы в базе данных
@@ -32,12 +32,12 @@ class VMStatus(BaseModel):
     TABLE_NAME = 'vm_statuses'
     
     # Константы для статусов (для использования в коде)
-    DRAFT = 'draft'
+    INACTIVE = 'inactive'
     ACTIVE = 'active'
     DELETED = 'deleted'
     
     DEFAULT_STATUSES = [
-        {'code': DRAFT, 'name': 'Черновик'},
+        {'code': INACTIVE, 'name': 'Не активен'},
         {'code': ACTIVE, 'name': 'Активен'},
         {'code': DELETED, 'name': 'Удалён'}
     ]
@@ -53,7 +53,7 @@ class VMStatus(BaseModel):
         return """
         CREATE TABLE IF NOT EXISTS vm_statuses (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            code VARCHAR(50) NOT NULL UNIQUE COMMENT 'Уникальный код статуса (draft, active, deleted)',
+            code VARCHAR(50) NOT NULL UNIQUE COMMENT 'Уникальный код статуса (inactive, active, deleted)',
             name VARCHAR(100) NOT NULL COMMENT 'Отображаемое название статуса',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             
@@ -105,7 +105,7 @@ class VMStatus(BaseModel):
         
         Args:
             cursor: Курсор MySQL
-            code: Код статуса (draft, active, deleted)
+            code: Код статуса (inactive, active, deleted)
         
         Returns:
             Optional[int]: ID статуса или None

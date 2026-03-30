@@ -15,7 +15,7 @@
                 <select name="status" class="form-select">
                     <option value="">Все статусы</option>
                     <option value="active" {% if status == 'active' %}selected{% endif %}>Активен</option>
-                    <option value="draft" {% if status == 'draft' %}selected{% endif %}>Черновик</option>
+                    <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Не активен</option>
                     <option value="deleted" {% if status == 'deleted' %}selected{% endif %}>Удалён</option>
                 </select>
             </div>
@@ -72,8 +72,8 @@
                     {% endif %}
                 </td>
                 <td>
-                    <span class="badge bg-{% if server.status == 'active' %}success{% elif server.status == 'draft' %}secondary{% else %}danger{% endif %}">
-                        {% if server.status == 'active' %}Активен{% elif server.status == 'draft' %}Черновик{% else %}Удалён{% endif %}
+                    <span class="badge bg-{% if server.status == 'active' %}success{% elif server.status == 'inactive' %}secondary{% else %}danger{% endif %}">
+                        {% if server.status == 'active' %}Активен{% elif server.status == 'inactive' %}Не активен{% else %}Удалён{% endif %}
                     </span>
                 </td>
                 <td>{{ server.cpu_cores }}</td>
@@ -86,7 +86,7 @@
                 <td>{{ "%.2f"|format(server.daily_cost * 31) if server.daily_cost else "—" }} ₽</td>
                 <td>
                     <a href="/servers/{{ server.id }}/edit" class="btn btn-sm btn-warning">Ред.</a>
-                    {% if server.status == 'draft' %}
+                    {% if server.status == 'inactive' %}
                     <form method="post" action="/servers/{{ server.id }}/activate" style="display: inline;">
                         <button type="submit" class="btn btn-sm btn-success">Активировать</button>
                     </form>
@@ -95,7 +95,9 @@
                         <button type="submit" class="btn btn-sm btn-warning">Деактивировать</button>
                     </form>
                     {% endif %}
+                    {% if server.status != 'deleted' %}
                     <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ server.id }}, '{{ server.name }}')">Удалить</button>
+                    {% endif %}
                 </td>
             </tr>
             {% else %}

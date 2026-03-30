@@ -438,3 +438,70 @@ async def deactivate_server(server_id: int, db: MySQLConnection = Depends(get_db
     response = build_server_response(cursor, row, db)
     cursor.close()
     return response
+
+@router.post("/{server_id}/status")
+async def change_server_status(
+    server_id: int,
+    status_code: str = Query(..., description="New status code: active, inactive, deleted"),
+    db: MySQLConnection = Depends(get_db)
+):
+    """
+    Change server status.
+    Allowed transitions: active -> inactive, active -> deleted, 
+                         inactive -> active, inactive -> deleted,
+                         deleted -> inactive (restore)
+    """
+    cursor = db.cursor(dictionary=True)
+    
+    # Check if server exists
+    row = get_server_dict(cursor, server_id)
+    if not row:
+        cursor.close()
+        raise HTTPException(status_code=404, detail="Server not found")
+    
+    current_status_code = get_status_code_by_id(cursor, row['status_id'])
+    
+    # Validate status code
+    valid_statuses = ['active', 'inactive', 'deleted']
+    if status_code not in valid_statuses:
+        cursor.close()
+        raise HTTPException(status_code=400, detail=f"Invalid status. Allowed: {valid_statuses}")
+    
+    # Get new status ID
+    new_status_id = get_status_id(db, status_code)
+    
+    # Update status
+    try:
+        if status_code == 'deleted':
+            # Set stop_date when deleting
+            cursor.execute("""
+                UPDATE virtual_servers 
+                SET status_id = %s, stop_date = CURDATE()
+                WHERE id = %s
+            """, (new_status_id, server_id))
+        elif current_status_code == 'deleted' and status_code == 'inactive':
+            # Restore from deleted - clear stop_date
+            cursor.execute("""
+                UPDATE virtual_servers 
+                SET status_id = %s, stop_date = NULL
+                WHERE id = %s
+            """, (new_status_id, server_id))
+        else:
+            # Simple status change
+            cursor.execute("""
+                UPDATE virtual_servers 
+                SET status_id = %s, stop_date = NULL
+                WHERE id = %s
+            """, (new_status_id, server_id))
+        
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        cursor.close()
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    # Return updated server
+    row = get_server_dict(cursor, server_id)
+    response = build_server_response(cursor, row, db)
+    cursor.close()
+    return response

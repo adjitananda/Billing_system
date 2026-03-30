@@ -368,6 +368,14 @@ async def edit_server(
 
 
 @router.post("/servers/{server_id}/activate")
+async def activate_server_redirect(request: Request, server_id: int):
+    # Redirect to unified status endpoint
+    async with httpx.AsyncClient() as client:
+        await client.post(f"{API_BASE_URL}/servers/{server_id}/status?status_code=active")
+    return RedirectResponse(url=f"/servers/{server_id}", status_code=303)
+
+# Old deactivate route
+@router.post("/servers/{server_id}/deactivate")
 async def activate_server(request: Request, server_id: int):
     await api_request("POST", f"/servers/{server_id}/activate")
     return RedirectResponse(url=f"/servers/{server_id}", status_code=303)

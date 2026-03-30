@@ -80,10 +80,10 @@
                         <td>
                             {% if vm.status == 'active' %}
                             <span class="badge bg-success">Активен</span>
-                            {% elif vm.status == 'deleted' %}
+                            {% elif vm.status == 'inactive' %}
                             <span class="badge bg-danger">Удалён</span>
                             {% else %}
-                            <span class="badge bg-secondary">{{ vm.status }}</span>
+                            <span class="badge bg-secondary">Не активен</span>
                             {% endif %}
                         </td>
                         <td>{{ vm.cpu_cores }}</td>
