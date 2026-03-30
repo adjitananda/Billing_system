@@ -340,6 +340,26 @@ async def physical_server_detail(request: Request, server_id: int):
     
     # Получаем список виртуальных серверов на этом хосте
     all_vms = await api_request("GET", "/servers/")
+    
+    # Получаем список клиентов для сопоставления ID с именами
+    try:
+        clients = await api_request("GET", "/clients/")
+        client_dict = {c["id"]: c["name"] for c in clients}
+    except:
+        client_dict = {}
+    
+    # Получаем список хостов для сопоставления ID с именами (для ссылок)
+    try:
+        physical_servers = await api_request("GET", "/physical-servers/")
+        host_dict = {h["id"]: h["name"] for h in physical_servers}
+    except:
+        host_dict = {}
+    
+    # Добавляем имена клиентов и хостов к каждому серверу
+    for vm in all_vms:
+        vm["client_name"] = client_dict.get(vm.get("client_id"))
+        vm["physical_server_name"] = host_dict.get(vm.get("physical_server_id"))
+    
     vms_on_host = [vm for vm in all_vms if vm.get("physical_server_id") == server_id]
     
     return templates.TemplateResponse(
@@ -347,7 +367,6 @@ async def physical_server_detail(request: Request, server_id: int):
         {"request": request, "physical_server": physical_server, "virtual_servers": vms_on_host}
     )
 
-@router.get("/physical-servers/create", response_class=HTMLResponse)
 async def create_physical_server_form(request: Request):
     return templates.TemplateResponse("physical_servers/form.html", {"request": request, "server": None})
 
