@@ -26,18 +26,77 @@ document.addEventListener('DOMContentLoaded', function() {
         }).format(value);
     }
     
-    // Отрисовка таблицы результатов
+    // Отрисовка таблицы результатов с сводным блоком
     function renderResults(data) {
         if (!data || data.length === 0) {
             resultsContainer.innerHTML = '<div class="alert alert-warning">Нет данных для отображения</div>';
             return;
         }
         
+        // Рассчитываем суммарные значения по всем клиентам
+        let totalCurrentDaily = 0;
+        let totalCurrentMonthly = 0;
+        let totalCalculatedDaily = 0;
+        let totalCalculatedMonthly = 0;
+        let totalMarkedupDaily = 0;
+        let totalMarkedupMonthly = 0;
+        
+        for (const client of data) {
+            totalCurrentDaily += client.client_current_daily;
+            totalCurrentMonthly += client.client_current_monthly;
+            totalCalculatedDaily += client.client_calculated_daily;
+            totalCalculatedMonthly += client.client_calculated_monthly;
+            totalMarkedupDaily += client.client_markedup_daily;
+            totalMarkedupMonthly += client.client_markedup_monthly;
+        }
+        
+        // Формируем HTML
         let html = '';
+        
+        // Сводный блок по всем клиентам
+        html += `
+            <div class="card mb-4 border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">📊 Сводный отчет по всем клиентам</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-primary">
+                            <thead>
+                                <tr>
+                                    <th>Показатель</th>
+                                    <th>Текущая Ст./День</th>
+                                    <th>Текущая Ст./31 День</th>
+                                    <th>Расчётная Ст./День</th>
+                                    <th>Расчётная Ст./31 День</th>
+                                    <th>С наценкой Ст./День</th>
+                                    <th>С наценкой Ст./31 День</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="fw-bold">
+                                    <td>ВСЕГО ПО ДЦ</td>
+                                    <td class="text-end">${formatNumber(totalCurrentDaily)} ₽</td>
+                                    <td class="text-end">${formatNumber(totalCurrentMonthly)} ₽</td>
+                                    <td class="text-end">${formatNumber(totalCalculatedDaily)} ₽</td>
+                                    <td class="text-end">${formatNumber(totalCalculatedMonthly)} ₽</td>
+                                    <td class="text-end">${formatNumber(totalMarkedupDaily)} ₽</td>
+                                    <td class="text-end">${formatNumber(totalMarkedupMonthly)} ₽</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <h4 class="mb-3">Детализация по клиентам</h4>
+        `;
+        
+        // Блоки по каждому клиенту
         for (const client of data) {
             html += `
                 <div class="card mb-4">
-                    <div class="card-header bg-primary text-white">
+                    <div class="card-header bg-secondary text-white">
                         <h5 class="mb-0">Клиент: ${client.client_name}</h5>
                     </div>
                     <div class="card-body">
@@ -90,6 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
         }
+        
         resultsContainer.innerHTML = html;
     }
     
