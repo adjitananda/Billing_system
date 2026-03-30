@@ -162,12 +162,15 @@ async def get_client_servers(
         cursor.close()
         raise HTTPException(status_code=404, detail="Client not found")
     
-    # Get all servers for this client
+    # Get all servers for this client with status name
     cursor.execute("""
         SELECT vs.*, 
-               ps.name as physical_server_name
+               ps.name as physical_server_name,
+               vms.name as status_name,
+               vms.code as status_code
         FROM virtual_servers vs
         LEFT JOIN physical_servers ps ON vs.physical_server_id = ps.id
+        LEFT JOIN vm_statuses vms ON vs.status_id = vms.id
         WHERE vs.client_id = %s
         ORDER BY vs.id
     """, (client_id,))

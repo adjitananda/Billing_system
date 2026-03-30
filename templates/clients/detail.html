@@ -47,9 +47,13 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="badge bg-{% if server.status == 'active' %}success{% elif server.status == 'draft' %}secondary{% else %}danger{% endif %}">
-                                        {% if server.status == 'active' %}Активен{% elif server.status == 'draft' %}Черновик{% else %}Удалён{% endif %}
-                                    </span>
+                                    {% if server.status_code == 'active' %}
+                                        <span class="badge bg-success">Активен</span>
+                                    {% elif server.status_code == 'draft' %}
+                                        <span class="badge bg-secondary">Черновик</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Удалён</span>
+                                    {% endif %}
                                 </td>
                                 <td>{{ server.cpu_cores }} ядер</td>
                                 <td>{{ server.ram_gb }} ГБ</td>
