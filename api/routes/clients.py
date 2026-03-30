@@ -15,8 +15,7 @@ router = APIRouter()
 @router.get("/with-monthly-total")
 async def get_clients_with_month_total(db: MySQLConnection = Depends(get_db)):
     """
-    Get all clients with their monthly total from daily_billing.
-    Returns list of clients with month_total field.
+    Get all clients with monthly total (daily_total * 31) and daily total from current config.
     """
     cursor = db.cursor(dictionary=True)
     
@@ -26,12 +25,24 @@ async def get_clients_with_month_total(db: MySQLConnection = Depends(get_db)):
             c.name,
             c.created_at,
             c.updated_at,
-            COALESCE(SUM(db.total_cost), 0) as month_total
+            COALESCE(SUM(
+                (vs.cpu_cores * rp.cpu_price_per_core) +
+                (vs.ram_gb * rp.ram_price_per_gb) +
+                ((vs.nvme1_gb + vs.nvme2_gb + vs.nvme3_gb + vs.nvme4_gb + vs.nvme5_gb) * rp.nvme_price_per_gb) +
+                (vs.hdd_gb * rp.hdd_price_per_gb)
+            ), 0) as daily_total
         FROM clients c
-        LEFT JOIN daily_billing db 
-            ON c.id = db.client_id 
-            AND db.billing_date >= DATE_FORMAT(CURDATE(), '%%Y-%%m-01')
-            AND db.billing_date <= CURDATE()
+        LEFT JOIN virtual_servers vs 
+            ON c.id = vs.client_id
+            AND vs.status_id = (SELECT id FROM vm_statuses WHERE code = 'active')
+            AND (vs.start_date <= CURDATE() OR vs.start_date IS NULL)
+            AND (vs.stop_date > CURDATE() OR vs.stop_date IS NULL)
+        CROSS JOIN (
+            SELECT cpu_price_per_core, ram_price_per_gb, nvme_price_per_gb, hdd_price_per_gb
+            FROM resource_prices 
+            WHERE effective_from <= CURDATE() 
+            ORDER BY effective_from DESC LIMIT 1
+        ) rp
         GROUP BY c.id, c.name, c.created_at, c.updated_at
         ORDER BY c.name
     """
@@ -40,12 +51,16 @@ async def get_clients_with_month_total(db: MySQLConnection = Depends(get_db)):
     rows = cursor.fetchall()
     cursor.close()
     
-    # Convert datetime objects to string
+    # Convert datetime objects to string and calculate month_total
     for row in rows:
         if row.get('created_at'):
             row['created_at'] = row['created_at'].isoformat()
         if row.get('updated_at'):
             row['updated_at'] = row['updated_at'].isoformat()
+        row['month_total'] = row['daily_total'] * 31
+    
+    return rows
+
     
     return rows
 
