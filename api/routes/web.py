@@ -82,9 +82,37 @@ async def dashboard(request: Request):
         return templates.TemplateResponse("error.html", {"request": request, "error": str(e)}, status_code=500)
 
 @router.get("/clients", response_class=HTMLResponse)
+@router.get("/clients", response_class=HTMLResponse)
 async def list_clients(request: Request, search: str = ""):
     try:
         clients = await api_request("GET", "/clients/with-monthly-total")
+        
+        # Добавляем расчет daily_total для каждого клиента
+        from decimal import Decimal
+        from config.database import get_connection
+        from services.billing_service import get_active_servers_on_date, get_config_on_date, get_prices_on_date, calculate_server_cost
+        from datetime import date
+        
+        conn = get_connection()
+        today = date.today().isoformat()
+        active_servers = get_active_servers_on_date(conn, today)
+        prices = get_prices_on_date(conn, today)
+        
+        # Создаем словарь daily_total по client_id
+        daily_totals = {}
+        if prices:
+            for server in active_servers:
+                client_id = server.get('client_id')
+                config = get_config_on_date(conn, server['id'], today)
+                if config:
+                    cost_dict = calculate_server_cost(config, prices)
+                    daily_totals[client_id] = daily_totals.get(client_id, 0) + float(cost_dict['total_cost'])
+        conn.close()
+        
+        # Добавляем daily_total к каждому клиенту
+        for client in clients:
+            client['daily_total'] = daily_totals.get(client['id'], 0.0)
+        
         if search:
             clients = [c for c in clients if search.lower() in c.get("name", "").lower()]
         try:

@@ -15,10 +15,8 @@
                 <input type="text" name="search" class="form-control" placeholder="Поиск по названию..." value="{{ search }}">
             </div>
             <div class="col-md-4">
-                <button type="submit" class="btn btn-secondary">Поиск</button>
-                {% if search %}
+                <button type="submit" class="btn btn-secondary">Найти</button>
                 <a href="/clients" class="btn btn-link">Сбросить</a>
-                {% endif %}
             </div>
         </form>
     </div>
@@ -31,6 +29,7 @@
                 <th>ID</th>
                 <th>Название</th>
                 <th>Серверов</th>
+                <th>Сумма за день</th>
                 <th>Сумма за месяц</th>
                 <th>Действия</th>
             </tr>
@@ -41,7 +40,8 @@
                 <td>{{ client.id }}</td>
                 <td><a href="/clients/{{ client.id }}">{{ client.name }}</a></td>
                 <td>{{ client.server_count }}</td>
-                <td>{{ "%.2f"|format(client.month_total) }} ₽</td>
+                <td>{{ "%.2f"|format(client.daily_total) | replace(".", ",") }} ₽</td>
+                <td>{{ "%.2f"|format(client.month_total) | replace(".", ",") }} ₽</td>
                 <td>
                     <a href="/clients/{{ client.id }}/edit" class="btn btn-sm btn-warning">Ред.</a>
                     <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ client.id }}, '{{ client.name }}')">Удалить</button>
@@ -49,7 +49,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="5" class="text-center">Нет клиентов</td>
+                <td colspan="6" class="text-center">Нет клиентов</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -60,7 +60,7 @@
 
 <script>
 function confirmDelete(id, name) {
-    if (confirm(`Удалить клиента "${name}"? Все серверы клиента также будут удалены.`)) {
+    if (confirm(`Удалить клиента "${name}"?`)) {
         const form = document.getElementById('deleteForm');
         form.action = `/clients/${id}/delete`;
         form.submit();
