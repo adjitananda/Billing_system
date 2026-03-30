@@ -45,6 +45,8 @@
                                 <th>RAM</th>
                                 <th>HDD</th>
                                 <th>NVMe</th>
+                                <th>Ст./День</th>
+                                <th>Ст./31 День</th>
                                 <th>Действия</th>
                             </tr>
                         </thead>
@@ -61,12 +63,15 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if server.status_code == 'active' %}
+                                    {% set status = server.status_code if server.status_code else server.status %}
+                                    {% if status == 'active' %}
                                         <span class="badge bg-success">Активен</span>
-                                    {% elif server.status_code == 'inactive' %}
+                                    {% elif status == 'inactive' %}
                                         <span class="badge bg-secondary">Не активен</span>
-                                    {% else %}
+                                    {% elif status == 'deleted' %}
                                         <span class="badge bg-danger">Удалён</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">{{ status }}</span>
                                     {% endif %}
                                 </td>
                                 <td>{{ server.cpu_cores }} ядер</td>
@@ -77,13 +82,27 @@
                                     {% if nvme_total > 0 %}{{ nvme_total }} ГБ{% else %}—{% endif %}
                                 </td>
                                 <td>
+                                    {% if server.daily_cost and server.daily_cost > 0 %}
+                                        {{ "%.2f"|format(server.daily_cost) }} ₽
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if server.daily_cost and server.daily_cost > 0 %}
+                                        {{ "%.2f"|format(server.daily_cost * 31) }} ₽
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td>
                                     <a href="/servers/{{ server.id }}" class="btn btn-sm btn-info">Просмотр</a>
                                     <a href="/servers/{{ server.id }}/edit" class="btn btn-sm btn-warning">Ред.</a>
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="9" class="text-center">Нет серверов у этого клиента</td>
+                                <td colspan="11" class="text-center">Нет серверов у этого клиента</td>
                             </tr>
                             {% endfor %}
                         </tbody>
