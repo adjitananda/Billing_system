@@ -95,9 +95,7 @@
                         <button type="submit" class="btn btn-sm btn-warning">Деактивировать</button>
                     </form>
                     {% endif %}
-                    {% if server.status != 'deleted' %}
                     <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ server.id }}, '{{ server.name }}')">Удалить</button>
-                    {% endif %}
                 </td>
             </tr>
             {% else %}
