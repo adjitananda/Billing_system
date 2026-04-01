@@ -17,3 +17,4 @@ date,event,server_name,client_name,purpose,os,IP-adress,physical_server_name,cpu
 2026-03-26,activate,server1102,S-Log,1C+SQL,WinSrv2022Std,81.29.143.172:11002,Host-01,8,16,100,100,0,0,0,200
 2026-03-26,activate,server1103,S-Log,TS+FS,WinSrv2022Std,81.29.143.172:11003,Host-01,12,48,100,200,700,0,0,1000
 2026-03-26,activate,server1104,S-Log,DB,WinSrv2019Std,81.29.143.172:11004,Host-01,1,4,0,0,0,0,0,100
+2026-03-31,activate,server1412,Delta-Transport,DB,WinSrv2019Std,81.29.143.172:11004,Host-03,16,32,100,260,0,0,0,400

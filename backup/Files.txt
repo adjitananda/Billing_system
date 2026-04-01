@@ -1,0 +1,114 @@
+Структура папок: /home/billing/billing_system
+============================================================
+└── /home/billing/billing_system/
+    ├── api/
+    │   ├── routes/
+    │   │   ├── __init__.py
+    │   │   ├── calculator.py
+    │   │   ├── clients.py
+    │   │   ├── physical_servers.py
+    │   │   ├── prices.py
+    │   │   ├── reports.py
+    │   │   ├── reports.py.bak
+    │   │   ├── servers.py
+    │   │   ├── servers.py_bak
+    │   │   ├── web.py
+    │   │   ├── web.py.backup
+    │   │   ├── web.py.backup2
+    │   │   ├── web.py.backup_client
+    │   │   └── web.py.bak
+    │   ├── schemas/
+    │   │   ├── __init__.py
+    │   │   ├── client.py
+    │   │   ├── physical_server.py
+    │   │   ├── price.py
+    │   │   ├── report.py
+    │   │   └── server.py
+    │   ├── __init__.py
+    │   ├── dependencies.py
+    │   └── main.py
+    ├── backup/
+    │   └── mysql-structure-billing-20260401_171515.sql
+    ├── config/
+    │   └── database.py
+    ├── data/
+    │   ├── events.csv
+    │   ├── events_real.csv
+    │   ├── prices.csv
+    │   └── real_data.csv
+    ├── docs/
+    │   ├── buglist.csv
+    │   ├── buglist.md
+    │   ├── import_guide.md
+    │   ├── prices.csv
+    │   ├── template.csv
+    │   └── template.tsv
+    ├── migrations/
+    │   └── init_db.py
+    ├── models/
+    │   ├── __init__.py
+    │   ├── base.py
+    │   ├── client.py
+    │   ├── daily_billing.py
+    │   ├── physical_server.py
+    │   ├── resource_price.py
+    │   ├── virtual_server.py
+    │   ├── vm_config_history.py
+    │   └── vm_status.py
+    ├── pictures/
+    │   └── swagger_main.png.jpg
+    ├── scripts/
+    │   ├── daily_billing.py
+    │   ├── import_history.py
+    │   ├── README.md
+    │   └── seed.py
+    ├── services/
+    │   ├── __init__.py
+    │   └── billing_service.py
+    ├── Sprint-Reports/
+    │   └── Billing_system_Sprint-Report-6.pdf
+    ├── static/
+    │   ├── css/
+    │   │   └── style.css
+    │   └── js/
+    │       └── calculator.js
+    ├── templates/
+    │   ├── calculator/
+    │   │   └── index.html
+    │   ├── clients/
+    │   │   ├── detail.html
+    │   │   ├── form.html
+    │   │   └── list.html
+    │   ├── physical_servers/
+    │   │   ├── detail.html
+    │   │   ├── form.html
+    │   │   └── list.html
+    │   ├── prices/
+    │   │   ├── edit.html
+    │   │   ├── form.html
+    │   │   └── list.html
+    │   ├── reports/
+    │   │   └── index.html
+    │   ├── servers/
+    │   │   ├── detail.html
+    │   │   ├── edit.html
+    │   │   ├── form.html
+    │   │   └── list.html
+    │   ├── base.html
+    │   ├── dashboard.html
+    │   ├── datacenter.html
+    │   └── error.html
+    ├── tests/
+    │   └── __init__.py
+    ├── tmp/
+    │   └── daily_billing_step1.py
+    ├── utils/
+    │   ├── __init__.py
+    │   └── logger.py
+    ├── .env
+    ├── .gitignore
+    ├── README.md
+    ├── requirements.txt
+    ├── run.py
+    ├── run_api.py
+    └── server.log
