@@ -20,7 +20,7 @@
                 <h5 class="card-title">Текущая стоимость</h5>
                 <p class="card-text">
                     <strong>Ст./День:</strong> {{ "%.2f"|format(daily_cost) }} ₽<br>
-                    <strong>Ст./31 День:</strong> {{ "%.2f"|format(monthly_cost_approx) }} ₽
+                    <strong>Ст./30 дней:</strong> {{ "%.2f"|format(monthly_cost_approx) }} ₽
                 </p>
             </div>
         </div>
@@ -47,7 +47,7 @@
                                 <th>HDD</th>
                                 <th>NVMe</th>
                                 <th>Ст./День</th>
-                                <th>Ст./31 День</th>
+                                <th>Ст./30 дней</th>
                                 <th>Действия</th>
                             </tr>
                         </thead>
@@ -91,7 +91,7 @@
                                 </a>
                                 <td>
                                     {% if server.daily_cost and server.daily_cost > 0 %}
-                                        {{ "%.2f"|format(server.daily_cost * 31) }} ₽
+                                        {{ "%.2f"|format(server.daily_cost * 30) }} ₽
                                     {% else %}
                                         —
                                     {% endif %}

@@ -124,10 +124,10 @@ async def calculate(request: CalculateRequest, db: MySQLConnection = Depends(get
         
         current_cost_dict = calculate_server_cost(config, current_prices)
         current_daily = float(current_cost_dict["total_cost"])
-        current_monthly = current_daily * 31
+        current_monthly = current_daily * 30
         
         calculated_daily = calculate_server_cost_with_custom_prices(db, server_id, today, request.custom_prices)
-        calculated_monthly = calculated_daily * 31
+        calculated_monthly = calculated_daily * 30
         
         # Расчёт с индивидуальными наценками
         cpu_cores, ram_gb, nvme_gb, hdd_gb = get_resource_values(config)
@@ -144,7 +144,7 @@ async def calculate(request: CalculateRequest, db: MySQLConnection = Depends(get
         cost_hdd = base_hdd * (1 + markup.hdd / 100)
         
         markedup_daily = cost_cpu + cost_ram + cost_nvme + cost_hdd
-        markedup_monthly = markedup_daily * 31
+        markedup_monthly = markedup_daily * 30
         
         server_result = {
             "server_id": server_id,
