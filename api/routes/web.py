@@ -593,3 +593,21 @@ async def calculator_page(request: Request):
         "current_prices": prices_dict,
         "clients": clients
     })
+
+# ==================== КОНКУРЕНТЫ ====================
+@router.get("/competitors", response_class=HTMLResponse)
+async def competitors_list(request: Request):
+    """Страница списка конкурентов"""
+    return templates.TemplateResponse("competitors/index.html", {"request": request})
+
+
+@router.get("/competitors/add", response_class=HTMLResponse)
+async def competitors_add(request: Request):
+    """Страница добавления конкурента"""
+    return templates.TemplateResponse("competitors/form.html", {"request": request, "competitor_id": None})
+
+
+@router.get("/competitors/{competitor_id}/edit", response_class=HTMLResponse)
+async def competitors_edit(request: Request, competitor_id: int):
+    """Страница редактирования конкурента"""
+    return templates.TemplateResponse("competitors/form.html", {"request": request, "competitor_id": competitor_id})

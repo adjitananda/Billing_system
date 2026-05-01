@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Конкуренты{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>🏢 Конкуренты</h1>
+    <a href="/competitors/add" class="btn btn-primary">+ Добавить конкурента</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Название</th>
+                        <th>Сайт</th>
+                        <th>Цены (CPU / RAM / NVMe / HDD)</th>
+                        <th>Статус</th>
+                        <th>Порядок</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="competitorsTableBody">
+                    <tr>
+                        <td colspan="6" class="text-center">Загрузка...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+async function loadCompetitors() {
+    try {
+        const response = await fetch('/api/competitors');
+        const competitors = await response.json();
+        
+        const tbody = document.getElementById('competitorsTableBody');
+        tbody.innerHTML = '';
+        
+        for (const comp of competitors) {
+            const row = tbody.insertRow();
+            row.insertCell(0).textContent = comp.name;
+            row.insertCell(1).innerHTML = comp.website ? `<a href="${comp.website}" target="_blank">${comp.website}</a>` : '—';
+            row.insertCell(2).innerHTML = `${comp.prices.cpu.toFixed(2)} / ${comp.prices.ram.toFixed(2)} / ${comp.prices.nvme.toFixed(2)} / ${comp.prices.hdd.toFixed(2)}`;
+            row.insertCell(3).innerHTML = comp.is_active ? '<span class="badge bg-success">Активен</span>' : '<span class="badge bg-secondary">Неактивен</span>';
+            row.insertCell(4).textContent = comp.sort_order;
+            
+            const actions = row.insertCell(5);
+            actions.innerHTML = `
+                <a href="/competitors/${comp.id}/edit" class="btn btn-sm btn-warning">✏️</a>
+                <button class="btn btn-sm btn-danger" onclick="deleteCompetitor(${comp.id})">🗑️</button>
+            `;
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        document.getElementById('competitorsTableBody').innerHTML = '<tr><td colspan="6" class="text-center text-danger">Ошибка загрузки</td></tr>';
+    }
+}
+
+async function deleteCompetitor(id) {
+    if (!confirm('Удалить конкурента? Это действие нельзя отменить.')) return;
+    
+    try {
+        const response = await fetch(`/api/competitors/${id}`, { method: 'DELETE' });
+        if (response.ok) {
+            loadCompetitors();
+        } else {
+            alert('Ошибка удаления');
+        }
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+loadCompetitors();
+</script>
+{% endblock %}

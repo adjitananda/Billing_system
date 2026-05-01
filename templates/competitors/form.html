@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}{% if competitor_id %}Редактирование{% else %}Добавление{% endif %} конкурента{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>{% if competitor_id %}✏️ Редактирование{% else %}➕ Добавление{% endif %} конкурента</h3>
+            </div>
+            <div class="card-body">
+                <form id="competitorForm">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Название *</label>
+                        <input type="text" class="form-control" id="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="website" class="form-label">Сайт</label>
+                        <input type="url" class="form-control" id="website" placeholder="https://example.com">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" checked>
+                            <label class="form-check-label" for="is_active">Активен (показывать в КП)</label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="sort_order" class="form-label">Порядок сортировки (меньше = выше)</label>
+                        <input type="number" class="form-control" id="sort_order" value="0">
+                    </div>
+                    
+                    <h5 class="mt-4 mb-3">Цены (₽ за единицу в день)</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="cpu_price" class="form-label">CPU (ядро)</label>
+                            <input type="number" step="0.01" class="form-control" id="cpu_price" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="ram_price" class="form-label">RAM (ГБ)</label>
+                            <input type="number" step="0.01" class="form-control" id="ram_price" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="nvme_price" class="form-label">NVMe (ГБ)</label>
+                            <input type="number" step="0.01" class="form-control" id="nvme_price" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="hdd_price" class="form-label">HDD (ГБ)</label>
+                            <input type="number" step="0.01" class="form-control" id="hdd_price" value="0">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                        <a href="/competitors" class="btn btn-secondary">Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+{% if competitor_id %}
+const competitorId = {{ competitor_id }};
+{% else %}
+const competitorId = null;
+{% endif %}
+
+async function loadCompetitor() {
+    if (!competitorId) return;
+    
+    try {
+        const response = await fetch(`/api/competitors/${competitorId}`);
+        const data = await response.json();
+        
+        document.getElementById('name').value = data.name;
+        document.getElementById('website').value = data.website || '';
+        document.getElementById('is_active').checked = data.is_active;
+        document.getElementById('sort_order').value = data.sort_order;
+        document.getElementById('cpu_price').value = data.prices.cpu;
+        document.getElementById('ram_price').value = data.prices.ram;
+        document.getElementById('nvme_price').value = data.prices.nvme;
+        document.getElementById('hdd_price').value = data.prices.hdd;
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Ошибка загрузки данных');
+    }
+}
+
+document.getElementById('competitorForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const data = {
+        name: document.getElementById('name').value,
+        website: document.getElementById('website').value || null,
+        is_active: document.getElementById('is_active').checked,
+        sort_order: parseInt(document.getElementById('sort_order').value) || 0,
+        prices: {
+            cpu: parseFloat(document.getElementById('cpu_price').value) || 0,
+            ram: parseFloat(document.getElementById('ram_price').value) || 0,
+            nvme: parseFloat(document.getElementById('nvme_price').value) || 0,
+            hdd: parseFloat(document.getElementById('hdd_price').value) || 0
+        }
+    };
+    
+    try {
+        let response;
+        if (competitorId) {
+            response = await fetch(`/api/competitors/${competitorId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+        } else {
+            response = await fetch('/api/competitors', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+        }
+        
+        if (response.ok) {
+            window.location.href = '/competitors';
+        } else {
+            const error = await response.json();
+            alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
+        }
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+});
+
+loadCompetitor();
+</script>
+{% endblock %}

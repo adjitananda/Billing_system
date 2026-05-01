@@ -6,7 +6,7 @@ FastAPI версия
 
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List, Dict, Optional
 from datetime import date
 from mysql.connector import Error
 
@@ -185,6 +185,148 @@ async def generate_quote(client_id: int, request: GenerateQuoteRequest, conn=Dep
         )
         
         return response
+        
+    except HTTPException:
+        raise
+    except Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    finally:
+        cursor.close()
+
+# ========== КОНКУРЕНТЫ ==========
+
+class CompetitorQuoteServer(BaseModel):
+    server_id: int
+    server_name: str
+    cpu: int
+    ram: int
+    nvme_disk: int
+    hdd_disk: int
+    price_per_day: float
+    price_per_30_days: float
+
+
+class CompetitorQuoteTotals(BaseModel):
+    cpu: int
+    ram: int
+    nvme: int
+    hdd: int
+    price_per_day: float
+    price_per_30_days: float
+
+
+class CompetitorQuoteResponse(BaseModel):
+    competitor_id: int
+    competitor_name: str
+    website: Optional[str] = None
+    servers: List[CompetitorQuoteServer]
+    totals: CompetitorQuoteTotals
+
+
+@router.get("/clients/{client_id}/competitor-quotes", response_model=List[CompetitorQuoteResponse])
+async def get_competitor_quotes(client_id: int, conn=Depends(get_db)):
+    """
+    Получить расчёты КП для всех активных конкурентов
+    """
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Проверяем существование клиента
+        cursor.execute("SELECT id, name FROM clients WHERE id = %s", (client_id,))
+        client = cursor.fetchone()
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        # Получаем активные серверы клиента
+        cursor.execute("""
+            SELECT id, name, cpu_cores as cpu, ram_gb as ram, 
+                   (nvme1_gb + nvme2_gb + nvme3_gb + nvme4_gb + nvme5_gb) as nvme_disk,
+                   hdd_gb as hdd_disk
+            FROM virtual_servers
+            WHERE client_id = %s AND status_id = 1
+        """, (client_id,))
+        servers = cursor.fetchall()
+        
+        if not servers:
+            return []
+        
+        # Получаем активных конкурентов
+        cursor.execute("""
+            SELECT c.id, c.name, c.website, 
+                   cp.cpu_price, cp.ram_price, cp.nvme_price, cp.hdd_price
+            FROM competitors c
+            LEFT JOIN competitor_prices cp ON c.id = cp.competitor_id
+            WHERE c.is_active = TRUE
+            ORDER BY c.sort_order ASC, c.name ASC
+        """)
+        competitors = cursor.fetchall()
+        
+        results = []
+        
+        for comp in competitors:
+            servers_data = []
+            totals = {
+                'cpu': 0,
+                'ram': 0,
+                'nvme': 0,
+                'hdd': 0,
+                'price_per_day': 0.0,
+                'price_per_30_days': 0.0
+            }
+            
+            comp_prices = {
+                'cpu': float(comp.get('cpu_price', 0) or 0),
+                'ram': float(comp.get('ram_price', 0) or 0),
+                'nvme': float(comp.get('nvme_price', 0) or 0),
+                'hdd': float(comp.get('hdd_price', 0) or 0)
+            }
+            
+            for server in servers:
+                cpu_cores = server['cpu']
+                ram_gb = server['ram']
+                nvme_gb = server['nvme_disk']
+                hdd_gb = server['hdd_disk']
+                
+                # Расчёт без наценок
+                price_per_day = (cpu_cores * comp_prices['cpu'] +
+                                ram_gb * comp_prices['ram'] +
+                                nvme_gb * comp_prices['nvme'] +
+                                hdd_gb * comp_prices['hdd'])
+                price_per_30_days = price_per_day * 30
+                
+                server_data = CompetitorQuoteServer(
+                    server_id=server['id'],
+                    server_name=server['name'],
+                    cpu=cpu_cores,
+                    ram=ram_gb,
+                    nvme_disk=nvme_gb,
+                    hdd_disk=hdd_gb,
+                    price_per_day=round(price_per_day, 2),
+                    price_per_30_days=round(price_per_30_days, 2)
+                )
+                servers_data.append(server_data)
+                
+                totals['cpu'] += cpu_cores
+                totals['ram'] += ram_gb
+                totals['nvme'] += nvme_gb
+                totals['hdd'] += hdd_gb
+                totals['price_per_day'] += price_per_day
+                totals['price_per_30_days'] += price_per_30_days
+            
+            totals['price_per_day'] = round(totals['price_per_day'], 2)
+            totals['price_per_30_days'] = round(totals['price_per_30_days'], 2)
+            
+            results.append(CompetitorQuoteResponse(
+                competitor_id=comp['id'],
+                competitor_name=comp['name'],
+                website=comp.get('website'),
+                servers=servers_data,
+                totals=CompetitorQuoteTotals(**totals)
+            ))
+        
+        return results
         
     except HTTPException:
         raise

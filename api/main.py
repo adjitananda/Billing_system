@@ -11,6 +11,7 @@ from api.routes import clients, servers, prices, reports, web
 from api.routes import calculator
 from api.routes import physical_servers
 from api.routes import quotes
+from api.routes import competitors
 
 # Create FastAPI instance
 app = FastAPI(
@@ -47,6 +48,7 @@ app.include_router(physical_servers.router, prefix="/api/v1/physical-servers", t
 app.include_router(web.router)
 app.include_router(calculator.router, prefix="/api/v1/calculator", tags=["Калькулятор"])
 app.include_router(quotes.router, prefix="", tags=["Коммерческое предложение"])
+app.include_router(competitors.router, prefix="", tags=["Конкуренты"])
 
 
 @app.get("/")
