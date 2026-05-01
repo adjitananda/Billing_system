@@ -11,7 +11,6 @@ from datetime import date
 from mysql.connector import Error
 
 from api.dependencies import get_db
-from services.billing_service import calculate_server_cost_with_custom_prices
 
 router = APIRouter(tags=["Коммерческое предложение"])
 
@@ -23,9 +22,16 @@ class CustomPrices(BaseModel):
     hdd: float
 
 
+class MarkupPercent(BaseModel):
+    cpu: float = 20.0
+    ram: float = 10.0
+    nvme: float = 2.0
+    hdd: float = 5.0
+
+
 class GenerateQuoteRequest(BaseModel):
     custom_prices: CustomPrices
-    markup_percent: float = 20.0
+    markup_percent: MarkupPercent
 
 
 class ServerQuoteItem(BaseModel):
@@ -52,7 +58,7 @@ class GenerateQuoteResponse(BaseModel):
     client_id: int
     client_name: str
     date: str
-    markup_percent: float
+    markup_percent: MarkupPercent
     servers: List[ServerQuoteItem]
     totals: TotalsQuote
 
@@ -98,13 +104,8 @@ async def get_current_prices(conn=Depends(get_db)):
 
 @router.post("/clients/{client_id}/generate-quote", response_model=GenerateQuoteResponse)
 async def generate_quote(client_id: int, request: GenerateQuoteRequest, conn=Depends(get_db)):
-    custom_prices_dict: Dict[str, float] = {
-        'cpu': request.custom_prices.cpu,
-        'ram': request.custom_prices.ram,
-        'nvme': request.custom_prices.nvme,
-        'hdd': request.custom_prices.hdd
-    }
-    markup_percent = request.markup_percent
+    custom_prices = request.custom_prices
+    markup = request.markup_percent
     
     cursor = conn.cursor(dictionary=True)
     
@@ -138,34 +139,36 @@ async def generate_quote(client_id: int, request: GenerateQuoteRequest, conn=Dep
         }
         
         for server in servers:
-            server_id = server['id']
+            cpu_cores = server['cpu']
+            ram_gb = server['ram']
+            nvme_gb = server['nvme_disk']
+            hdd_gb = server['hdd_disk']
             
-            base_price_per_day = calculate_server_cost_with_custom_prices(
-                conn=conn,
-                server_id=server_id,
-                target_date=today_str,
-                custom_prices=custom_prices_dict
-            )
+            # Расчёт стоимости каждого компонента с индивидуальной наценкой
+            cost_cpu = cpu_cores * custom_prices.cpu * (1 + markup.cpu / 100)
+            cost_ram = ram_gb * custom_prices.ram * (1 + markup.ram / 100)
+            cost_nvme = nvme_gb * custom_prices.nvme * (1 + markup.nvme / 100)
+            cost_hdd = hdd_gb * custom_prices.hdd * (1 + markup.hdd / 100)
             
-            price_per_day = base_price_per_day * (1 + markup_percent / 100)
+            price_per_day = cost_cpu + cost_ram + cost_nvme + cost_hdd
             price_per_30_days = price_per_day * 30
             
             server_data = ServerQuoteItem(
                 server_id=server['id'],
                 server_name=server['name'],
-                cpu=server['cpu'],
-                ram=server['ram'],
-                nvme_disk=server['nvme_disk'],
-                hdd_disk=server['hdd_disk'],
+                cpu=cpu_cores,
+                ram=ram_gb,
+                nvme_disk=nvme_gb,
+                hdd_disk=hdd_gb,
                 price_per_day=round(price_per_day, 2),
                 price_per_30_days=round(price_per_30_days, 2)
             )
             servers_data.append(server_data)
             
-            totals['cpu'] += server['cpu']
-            totals['ram'] += server['ram']
-            totals['nvme'] += server['nvme_disk']
-            totals['hdd'] += server['hdd_disk']
+            totals['cpu'] += cpu_cores
+            totals['ram'] += ram_gb
+            totals['nvme'] += nvme_gb
+            totals['hdd'] += hdd_gb
             totals['price_per_day'] += price_per_day
             totals['price_per_30_days'] += price_per_30_days
         
@@ -176,7 +179,7 @@ async def generate_quote(client_id: int, request: GenerateQuoteRequest, conn=Dep
             client_id=client['id'],
             client_name=client['name'],
             date=today_str,
-            markup_percent=markup_percent,
+            markup_percent=markup,
             servers=servers_data,
             totals=TotalsQuote(**totals)
         )

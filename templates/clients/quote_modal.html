@@ -27,9 +27,27 @@
                                 <label for="price_hdd" class="form-label">HDD (₽/ГБ/день)</label>
                                 <input type="number" step="0.01" id="price_hdd" class="form-control" required>
                             </div>
-                            <div class="col-md-12 mb-3">
-                                <label for="markup" class="form-label">Наценка (%)</label>
-                                <input type="number" step="1" id="markup" value="20" class="form-control" required>
+                        </div>
+                        
+                        <div class="col-md-12 mt-3">
+                            <label class="fw-bold">Наценки на ресурсы (%)</label>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-3">
+                                <label for="markup_cpu" class="form-label">CPU</label>
+                                <input type="number" step="0.1" id="markup_cpu" value="20" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="markup_ram" class="form-label">RAM</label>
+                                <input type="number" step="0.1" id="markup_ram" value="10" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="markup_nvme" class="form-label">NVMe</label>
+                                <input type="number" step="0.1" id="markup_nvme" value="2" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="markup_hdd" class="form-label">HDD</label>
+                                <input type="number" step="0.1" id="markup_hdd" value="5" class="form-control">
                             </div>
                         </div>
                     </form>
@@ -47,7 +65,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p id="quoteDate"></p>
+                    <p id="quoteInfo"></p>
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered" id="quoteTable">
                             <thead>
@@ -56,14 +74,14 @@
                             <tbody id="quoteTableBody"></tbody>
                             <tfoot>
                                 <tr class="table-active fw-bold">
-                                    <td>ИТОГО:</td>
-                                    <td id="total_cpu"></td>
-                                    <td id="total_ram"></td>
-                                    <td id="total_nvme"></td>
-                                    <td id="total_hdd"></td>
-                                    <td id="total_price_day"></td>
-                                    <td id="total_price_month"></td>
-                                </tr>
+                                    <td>ИТОГО:</a>
+                                    <td id="total_cpu"></a>
+                                    <td id="total_ram"></a>
+                                    <td id="total_nvme"></a>
+                                    <td id="total_hdd"></a>
+                                    <td id="total_price_day"></a>
+                                    <td id="total_price_month"></a>
+                                </a>
                             </tfoot>
                         </table>
                     </div>

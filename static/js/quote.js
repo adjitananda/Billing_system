@@ -37,7 +37,13 @@ async function generateQuote(clientId) {
         nvme: parseFloat(document.getElementById('price_nvme').value),
         hdd: parseFloat(document.getElementById('price_hdd').value)
     };
-    const markup_percent = parseFloat(document.getElementById('markup').value);
+    
+    const markup_percent = {
+        cpu: parseFloat(document.getElementById('markup_cpu').value),
+        ram: parseFloat(document.getElementById('markup_ram').value),
+        nvme: parseFloat(document.getElementById('markup_nvme').value),
+        hdd: parseFloat(document.getElementById('markup_hdd').value)
+    };
     
     try {
         const response = await fetch(`/clients/${clientId}/generate-quote`, {
@@ -62,8 +68,10 @@ async function generateQuote(clientId) {
 
 // Отображение результата
 function displayQuoteResult(data) {
-    // Заголовок
-    document.getElementById('quoteDate').innerHTML = `<strong>Клиент:</strong> ${data.client_name}<br><strong>Дата:</strong> ${data.date}<br><strong>Наценка:</strong> ${data.markup_percent}%`;
+    // Информация с наценками
+    const markup = data.markup_percent;
+    const markupText = `Клиент: ${data.client_name}<br>Дата: ${data.date}<br>Наценки: CPU +${markup.cpu}%, RAM +${markup.ram}%, NVMe +${markup.nvme}%, HDD +${markup.hdd}%`;
+    document.getElementById('quoteInfo').innerHTML = markupText;
     
     // Таблица серверов
     const tbody = document.getElementById('quoteTableBody');
@@ -97,10 +105,12 @@ function displayQuoteResult(data) {
 function copyQuoteText() {
     if (!currentQuoteData) return;
     
+    const markup = currentQuoteData.markup_percent;
+    
     let text = `КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ\n`;
     text += `Клиент: ${currentQuoteData.client_name}\n`;
     text += `Дата: ${currentQuoteData.date}\n`;
-    text += `Наценка: ${currentQuoteData.markup_percent}%\n\n`;
+    text += `Наценки: CPU +${markup.cpu}%, RAM +${markup.ram}%, NVMe +${markup.nvme}%, HDD +${markup.hdd}%\n\n`;
     text += `Сервер\tCPU\tRAM\tNVMe\tHDD\tСт./день\tСт./30 дней\n`;
     
     currentQuoteData.servers.forEach(s => {
@@ -117,7 +127,10 @@ function copyQuoteText() {
 function downloadQuoteCsv() {
     if (!currentQuoteData) return;
     
-    let csv = "Сервер,CPU,RAM,NVMe,HDD,Ст./день (₽),Ст./30 дней (₽)\n";
+    const markup = currentQuoteData.markup_percent;
+    
+    let csv = `# Наценки: CPU ${markup.cpu}%, RAM ${markup.ram}%, NVMe ${markup.nvme}%, HDD ${markup.hdd}%\n`;
+    csv += "Сервер,CPU,RAM,NVMe,HDD,Ст./день (₽),Ст./30 дней (₽)\n";
     
     currentQuoteData.servers.forEach(s => {
         csv += `${s.server_name},${s.cpu},${s.ram},${s.nvme_disk},${s.hdd_disk},${s.price_per_day.toFixed(2)},${s.price_per_30_days.toFixed(2)}\n`;
