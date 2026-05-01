@@ -75,14 +75,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             </thead>
                             <tbody>
                                 <tr class="fw-bold">
-                                    <td>ВСЕГО ПО ДЦ</td>
-                                    <td class="text-end">${formatNumber(totalCurrentDaily)} ₽</td>
-                                    <td class="text-end">${formatNumber(totalCurrentMonthly)} ₽</td>
-                                    <td class="text-end">${formatNumber(totalCalculatedDaily)} ₽</td>
-                                    <td class="text-end">${formatNumber(totalCalculatedMonthly)} ₽</td>
-                                    <td class="text-end">${formatNumber(totalMarkedupDaily)} ₽</td>
-                                    <td class="text-end">${formatNumber(totalMarkedupMonthly)} ₽</td>
-                                </tr>
+                                    <td>ВСЕГО ПО ДЦ</a>
+                                    <td class="text-end">${formatNumber(totalCurrentDaily)} ₽</a>
+                                    <td class="text-end">${formatNumber(totalCurrentMonthly)} ₽</a>
+                                    <td class="text-end">${formatNumber(totalCalculatedDaily)} ₽</a>
+                                    <td class="text-end">${formatNumber(totalCalculatedMonthly)} ₽</a>
+                                    <td class="text-end">${formatNumber(totalMarkedupDaily)} ₽</a>
+                                    <td class="text-end">${formatNumber(totalMarkedupMonthly)} ₽</a>
+                                </a>
                             </tbody>
                         </table>
                     </div>
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <th>Расчётная Ст./31 День</th>
                                         <th>С наценкой Ст./День</th>
                                         <th>С наценкой Ст./31 День</th>
-                                    </tr>
+                                    </a>
                                 </thead>
                                 <tbody>
             `;
@@ -158,7 +158,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const calculationType = document.querySelector('input[name="calculation_type"]:checked').value;
         const clientId = document.getElementById('client_id')?.value;
         const serverId = document.getElementById('server_id')?.value;
-        const markupPercent = parseFloat(document.getElementById('markup_percent').value) || 0;
+        
+        // Сбор данных с 4 полей наценки
+        const markupPercent = {
+            cpu: parseFloat(document.getElementById('markup_cpu').value) || 0,
+            ram: parseFloat(document.getElementById('markup_ram').value) || 0,
+            nvme: parseFloat(document.getElementById('markup_nvme').value) || 0,
+            hdd: parseFloat(document.getElementById('markup_hdd').value) || 0
+        };
         
         const customPrices = {
             cpu: parseFloat(document.getElementById('price_cpu').value) || 0,

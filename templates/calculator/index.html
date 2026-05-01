@@ -77,13 +77,32 @@
                     <input type="number" id="price_hdd" class="form-control price-input" step="0.1" value="{{ current_prices.hdd }}">
                 </div>
             </div>
-            <div class="row">
-                <div class="col-md-3 mb-3">
-                    <label for="markup_percent" class="form-label">Процент наценки (%):</label>
-                    <input type="number" id="markup_percent" class="form-control price-input" step="0.1" value="20">
+            
+            <div class="row mt-4">
+                <div class="col-12">
+                    <label class="fw-bold">Наценки на ресурсы (%)</label>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-3">
+                        <label for="markup_cpu" class="form-label">CPU</label>
+                        <input type="number" step="0.1" class="form-control price-input" id="markup_cpu" value="30">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="markup_ram" class="form-label">RAM</label>
+                        <input type="number" step="0.1" class="form-control price-input" id="markup_ram" value="38">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="markup_nvme" class="form-label">NVMe</label>
+                        <input type="number" step="0.1" class="form-control price-input" id="markup_nvme" value="0">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="markup_hdd" class="form-label">HDD</label>
+                        <input type="number" step="0.1" class="form-control price-input" id="markup_hdd" value="20">
+                    </div>
                 </div>
             </div>
-            <button id="calculate-btn" class="btn btn-primary mt-2">Рассчитать</button>
+            
+            <button id="calculate-btn" class="btn btn-primary mt-4">Рассчитать</button>
         </div>
         
         <div id="results-container" class="mt-4">
