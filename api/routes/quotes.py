@@ -23,10 +23,10 @@ class CustomPrices(BaseModel):
 
 
 class MarkupPercent(BaseModel):
-    cpu: float = 20.0
-    ram: float = 10.0
-    nvme: float = 2.0
-    hdd: float = 5.0
+    cpu: float = 30.0
+    ram: float = 38.0
+    nvme: float = 0.0
+    hdd: float = 20.0
 
 
 class GenerateQuoteRequest(BaseModel):
