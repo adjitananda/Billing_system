@@ -7,6 +7,7 @@
     <h1>{{ client.name }}</h1>
     <div>
         <a href="/clients/{{ client.id }}/edit" class="btn btn-warning">Редактировать</a>
+        <button class="btn btn-info" onclick="openQuoteModal({{ client.id }}, '{{ client.name }}')">📄 Коммерческое предложение</button>
         <button class="btn btn-danger" onclick="confirmDelete()">Удалить</button>
         <a href="/clients" class="btn btn-secondary">Назад</a>
     </div>
@@ -53,7 +54,7 @@
                         <tbody>
                             {% for server in servers %}
                             <tr>
-                                <td>{{ server.id }}</td>
+                                <td>{{ server.id }}</a></td>
                                 <td><a href="/servers/{{ server.id }}">{{ server.name }}</a></td>
                                 <td>
                                     {% if server.physical_server_name %}
@@ -61,7 +62,7 @@
                                     {% else %}
                                     <a href="/physical-servers/{{ server.physical_server_id }}">Хост #{{ server.physical_server_id }}</a>
                                     {% endif %}
-                                </td>
+                                </a>
                                 <td>
                                     {% set status = server.status_code if server.status_code else server.status %}
                                     {% if status == 'active' %}
@@ -73,37 +74,37 @@
                                     {% else %}
                                         <span class="badge bg-warning">{{ status }}</span>
                                     {% endif %}
-                                </td>
-                                <td>{{ server.cpu_cores }} ядер</td>
-                                <td>{{ server.ram_gb }} ГБ</td>
-                                <td>{% if server.hdd_gb > 0 %}{{ server.hdd_gb }} ГБ{% else %}—{% endif %}</td>
+                                </a>
+                                <td>{{ server.cpu_cores }} ядер</a>
+                                <td>{{ server.ram_gb }} ГБ</a>
+                                <td>{% if server.hdd_gb > 0 %}{{ server.hdd_gb }} ГБ{% else %}—{% endif %}</a>
                                 <td>
                                     {% set nvme_total = (server.nvme1_gb or 0) + (server.nvme2_gb or 0) + (server.nvme3_gb or 0) + (server.nvme4_gb or 0) + (server.nvme5_gb or 0) %}
                                     {% if nvme_total > 0 %}{{ nvme_total }} ГБ{% else %}—{% endif %}
-                                </td>
+                                </a>
                                 <td>
                                     {% if server.daily_cost and server.daily_cost > 0 %}
                                         {{ "%.2f"|format(server.daily_cost) }} ₽
                                     {% else %}
                                         —
                                     {% endif %}
-                                </td>
+                                </a>
                                 <td>
                                     {% if server.daily_cost and server.daily_cost > 0 %}
                                         {{ "%.2f"|format(server.daily_cost * 31) }} ₽
                                     {% else %}
                                         —
                                     {% endif %}
-                                </td>
+                                </a>
                                 <td>
                                     <a href="/servers/{{ server.id }}" class="btn btn-sm btn-info">Просмотр</a>
                                     <a href="/servers/{{ server.id }}/edit" class="btn btn-sm btn-warning">Ред.</a>
-                                </td>
-                            </tr>
+                                </a>
+                            </a>
                             {% else %}
                             <tr>
-                                <td colspan="11" class="text-center">Нет серверов у этого клиента</td>
-                            </tr>
+                                <td colspan="11" class="text-center">Нет серверов у этого клиента</a>
+                            </a>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -116,6 +117,9 @@
 
 <form id="deleteForm" method="post" action="/clients/{{ client.id }}/delete" style="display: none;"></form>
 
+<!-- Модальное окно КП -->
+{% include "clients/quote_modal.html" %}
+
 <script>
 function confirmDelete() {
     if (confirm('Удалить клиента "{{ client.name }}"? Все серверы клиента также будут удалены.')) {
@@ -123,4 +127,5 @@ function confirmDelete() {
     }
 }
 </script>
+<script src="/static/js/quote.js"></script>
 {% endblock %}

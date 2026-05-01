@@ -10,7 +10,7 @@ import os
 from api.routes import clients, servers, prices, reports, web
 from api.routes import calculator
 from api.routes import physical_servers
-from api.routes import quotes
+from api.routes import calculator
 
 # Create FastAPI instance
 app = FastAPI(
@@ -20,8 +20,8 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     swagger_ui_parameters={
-        "defaultModelsExpandDepth": -1,
-        "docExpansion": "none",
+        "defaultModelsExpandDepth": -1,  # Скрыть модели по умолчанию
+        "docExpansion": "none",  # Свернуть все эндпоинты
     }
 )
 
@@ -43,14 +43,18 @@ app.include_router(clients.router, prefix="/api/v1/clients", tags=["Клиент
 app.include_router(servers.router, prefix="/api/v1/servers", tags=["Серверы"])
 app.include_router(prices.router, prefix="/api/v1/prices", tags=["Цены"])
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["Отчеты"])
+# Include physical servers router
 app.include_router(physical_servers.router, prefix="/api/v1/physical-servers", tags=["Физические серверы"])
+
+# Web interface router (without prefix)
 app.include_router(web.router)
+# Include calculator router (API)
 app.include_router(calculator.router, prefix="/api/v1/calculator", tags=["Калькулятор"])
-app.include_router(quotes.router, prefix="", tags=["Коммерческое предложение"])
 
 
 @app.get("/")
 async def root():
+    """Корневой эндпоинт."""
     return {
         "message": "Billing_DC API",
         "version": "1.0.0",
@@ -61,4 +65,5 @@ async def root():
 
 @app.get("/health")
 async def health():
+    """Проверка работоспособности."""
     return {"status": "healthy"}
